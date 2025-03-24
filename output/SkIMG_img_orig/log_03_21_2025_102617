@@ -1,0 +1,4 @@
+START TIME:03_21_2025_102617
+data: {'mat_dir': '/home/allent/Desktop/NII/data', 'visuals': ['orig_cache'], 'img_scale': [1, 1, 1, 1, 1], 'normalize': True, 'batch_size': 1, 'control': 'Cont', 'disease': 'PAN'}
+feature_extraction: {'method': 'SkIMG', 'features': ['HOG'], 'orientations': 9, 'pixels_per_cell': 16, 'cells_per_block': 4, 'hog_intensity_rescale': 1, 'plot': True, 'compare': ['run_PCA', 'histogram_per_img']}
+output: {'loc': './output', 'visuals': ['plot_features']}
