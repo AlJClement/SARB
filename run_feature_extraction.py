@@ -11,7 +11,7 @@ def run_feature_extraction(config):
     #logger data setup
     t_start=datetime.datetime.now()
     t_start_str = datetime.datetime.now().strftime("%m_%d_%Y_%H%M%S")
-    #logger.setup_logger(os.path.join(config.output.loc,config.feature_extraction.method,'log_'+t_start_str))
+    #logger.setup_logger(os.path.join(config.output.loc,config.feature_extraction.method,'log_'+t_start_str))0-0
     log=logger.setup_logger(os.path.join(config.output.loc,config.feature_extraction.method,'log_'+t_start_str))
     log.info('START TIME:'+t_start_str)
     log_dict(log, config)
@@ -33,7 +33,7 @@ def run_feature_extraction(config):
     # #run extractor to get output as dict of multiple features
     # feat_dict = feat_extractor(config)._get_feature_dict(dict_arr)
 
-    #compare healthy and unhealthy features from dict
+    #compare healthy and unhealthy features from dictconda 
     Compare(config, data)._report()
     time_compare = datetime.datetime.now()
     total_time = time_compare-t_loader

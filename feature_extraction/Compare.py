@@ -78,7 +78,9 @@ class Compare():
             plt.xticks(rotation=45)
             ax.set_xticks(x)
             ax.set_xticklabels(feature_labels.tolist())  # Set custom x-axis labels
-            
+
+            ax.set_xlim([0, 0.75])
+
             plt.legend()
             plt.show()
             plt.title(self.plt_name+'_'+str(c))
@@ -88,7 +90,7 @@ class Compare():
 
         return
     
-    def histogram_per_img(self, bins = 30):
+    def histogram_per_img(self, bins = 50, alpha = 0.05):
         '''input image features are N,f,C,h,w
         N: number of samples
         f: features
@@ -107,8 +109,8 @@ class Compare():
 
         cont_feat_flatten= np.reshape(control_feats_arr, (control_feats_arr.shape[0],control_feats_arr.shape[1], int(np.prod(control_feats_arr.shape[2:]))))
         disease_feat_flatten=np.reshape(disease_feats_arr, (disease_feats_arr.shape[0],disease_feats_arr.shape[1], int(np.prod(disease_feats_arr.shape[2:]))))
-        
-        #plt individual
+
+        ### plt individual features comboned channels
         for f in range(len(feature_labels)):
             feature_name = feature_labels[f]
             print(feature_name)
@@ -126,33 +128,63 @@ class Compare():
                 else:
                     plt.hist(self.normalize_array(disease_feat_flatten[pat,f,:]), color = 'b', **kwargs)
 
+            vals_control=cont_feat_flatten[:,f,:]
+            vals_disease=disease_feat_flatten[:,f,:]
+            t_stat, p_value = stats.ttest_ind(vals_disease.flatten(), vals_control.flatten())
 
             plt.title(feature_name, fontsize=10, pad=0)
             plt.show()
             plt.legend()
+            transform=plt.gca().transAxes
+            STR="p="+str(round(p_value))
+            plt.text(0.05, 0.99, STR, horizontalalignment='left', verticalalignment='top', transform=transform)
             plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,feature_name+'_histogram'))
             plt.close()
         
-        # #plt all
-                
-        # #fatten features in histogram
-        # grid_size = int(np.ceil(math.sqrt(len(feature_labels))))
-        # fig, axes = plt.subplots(grid_size,grid_size,sharex=True,sharey=True,figsize=(grid_size,grid_size))
-        # axes = axes.ravel()
+        ### plt individual channels
+        cont_feat_flatten= np.reshape(control_feats_arr, (control_feats_arr.shape[0],control_feats_arr.shape[1],control_feats_arr.shape[2], int(np.prod(control_feats_arr.shape[3:]))))
+        disease_feat_flatten=np.reshape(disease_feats_arr, (disease_feats_arr.shape[0],disease_feats_arr.shape[1],disease_feats_arr.shape[2], int(np.prod(disease_feats_arr.shape[3:]))))
 
-        # for f in range(len(feature_labels)):
-        #     feature_name = feature_labels[f]
-        #     print(feature_name)
-        #     kwargs = dict(histtype='stepfilled', alpha=0.3, bins=20)
+        for f in range(len(feature_labels)):
+            fig, axes = plt.subplots(1,cont_feat_flatten.shape[2],figsize=(5*cont_feat_flatten.shape[2],5))
 
-        #     for pat in range(cont_feat_flatten.shape[0]):
-        #         axes[f].hist(cont_feat_flatten[pat,f,:], color = 'g', **kwargs)
+            for c in range((cont_feat_flatten.shape[2])):
+                print(c)
+                feature_name = feature_labels[f]
+                print(feature_name)
+                kwargs = dict(histtype='stepfilled', alpha=0.3, bins=bins)
 
-        #     for pat in range(cont_feat_flatten.shape[0]):
-        #         axes[f].hist(disease_feat_flatten[pat,f,:], color = 'b', **kwargs)
+                for pat in range(cont_feat_flatten.shape[0]):
+                    if pat == 0:
+                        axes[c].hist(self.normalize_array(cont_feat_flatten[pat,f,c,:]), color = 'g',label=self.control_str, **kwargs)
+                    else:
+                        axes[c].hist(self.normalize_array(cont_feat_flatten[pat,f,c,:]), color = 'g', **kwargs)
+    
+                for pat in range(disease_feat_flatten.shape[0]):
+                    if pat == 0:
+                        axes[c].hist(self.normalize_array(disease_feat_flatten[pat,f,c,:]), color = 'b', label=self.disease_str, **kwargs)
+                    else:
+                        axes[c].hist(self.normalize_array(disease_feat_flatten[pat,f,c,:]), color = 'b', **kwargs)
 
-        #     axes[f].set_title(feature_name, fontsize=3, pad=0)
+                vals_control=cont_feat_flatten[:,f,c,:]
+                vals_disease=disease_feat_flatten[:,f,c,:]
+                t_stat, p_value = stats.ttest_ind(vals_disease.flatten(), vals_control.flatten())
 
+                axes[c].set_title("channel "+str(c), fontsize=10, pad=0)
+                axes[c].legend()
+                if p_value<0.05:
+                    STR="p="+str(p_value)+"**"+""
+                    STRmean="m_cont="+str(round(vals_control.mean(),2))+", m_disease="+str(round(vals_disease.mean(),4))
+                else:
+                    STR="p="+str((p_value))
+                    STRmean="m_cont="+str(round(vals_control.mean(),2))+", m_disease="+str(round(vals_disease.mean(),4))
+
+                axes[c].text(0.05, 0.99, STR, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
+                axes[c].text(0.05, 0.95, STRmean, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
+
+            plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,feature_name+'_hstogram_PERCHANNEL'))
+            plt.close()
+            
         return
     
     def run_PCA(self, scale_data=False):
@@ -181,15 +213,23 @@ class Compare():
             axes[c].grid()
             axes[c].set_title('Channel '+str(c))
 
-            score=feats_fit_pca[:,0:2]
-            xs = score[:,0]
-            ys = score[:,1]
-            scalex = 1.0/(xs.max() - xs.min())
-            scaley = 1.0/(ys.max() - ys.min())
-            axes[c].scatter(xs * scalex,ys * scaley, c = classes) # labels = [self.control_str, self.disease_str])
+            # score=feats_fit_pca[:,0:2]
+            # xs = score[:,0]
+            # ys = score[:,1]
+            # axes[c].scatter(xs * scalex,ys * scaley, c = classes) # labels = [self.control_str, self.disease_str])
+            
+            # Separate two classes (Iris Setosa vs. Iris Versicolor for this example)
+            class1 = feats_fit_pca[classes == 0]  # First class (Setosa)
+            class2 = feats_fit_pca[classes == 1]  # Second class (Versicolor)
+            scalex = 1.0/(feats_fit_pca[:,0].max() - feats_fit_pca[:,0].min())
+            scaley = 1.0/(feats_fit_pca[:,1].max() - feats_fit_pca[:,1].min())
+            # Scatter plot
+            axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
+            axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='yellow', label=self.disease_str)
+
             axes[c].legend([self.control_str, self.disease_str])
             
-        plt.show()
+        # plt.show()
         plt.tight_layout()
         plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.plt_name+'_PCA'))
         plt.close()

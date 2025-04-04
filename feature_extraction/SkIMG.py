@@ -77,7 +77,7 @@ class SkIMG():
         features_dict = {} 
         for i in range(img_arr.shape[0]):
             # Extract HOG features and visualize them
-            canny_im =  canny(img_arr[i], sigma=3)
+            canny_im =  canny(img_arr[i], sigma=self.sigma)
 
             # Rescale histogram for better displayd
             features_dict[name+'_channel'+str(i)+'_'+self.out_sub_dir+'_canny'] = canny_im

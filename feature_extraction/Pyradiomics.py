@@ -1,7 +1,6 @@
 import SimpleITK as sitk
 import radiomics
 import numpy as np
-from radiomics import featureextractor
 import matplotlib.pyplot as plt
 import math
 from visualization import Visuals
@@ -24,6 +23,10 @@ class Pyradiomics():
         pass
 
     def extract_pixel_features(self, img_arr, pat_id):
+        try:
+            from radiomics import featureextractor
+        except:
+            print('check conda version')
         pyrad = featureextractor.RadiomicsFeatureExtractor()
         pyrad.enableAllFeatures()
         pyrad.enableFeatureClassByName({'firstorder': True, 'glcm': True})
@@ -88,7 +91,7 @@ class Pyradiomics():
         # Take input imge arr of multiple channels and caclulate features per channel
         features_per_channel,feat_names = self.extract_pixel_features(img_arr, pat_id)
 
-        feat_names_arr=np.expand_dims(np.array(feat_names), axis =0 )
+        feat_names_arr=np.expand_dims(np.array(feat_names), axis =0)
         # feat_names = np.expand_dims(labels, axis=0)
 
         return features_per_channel, feat_names_arr

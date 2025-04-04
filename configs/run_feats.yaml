@@ -1,15 +1,19 @@
 data:
-  mat_dir: '/home/allent/Desktop/NII/data'
+  mat_dir: '/home/allent/Desktop/data'
   visuals: 
     - orig_cache # original files, each channel plotted
   img_scale: [1,1,1,1,1] #scales each channel FOR VISUALS - given by Mihoko
+  set_max: [255,10,10,10,255]
+  set_max_feat: [1,1,1,1,1] #[200,50,50,50,200]
+  dpi: 1000
   normalize: True
   
   batch_size: 1
   ## define the disease and control as the folders where the data is located
   control: 'Cont'
   disease: 'PAN'
-  resample: [512,512]
+  resample: [224, 224] #[512,512] #[2048,2048]
+  patch_size: None #256 #8 #grid size for patches, splits up imae
 
 # feature_extraction:
 #   method: Pyradiomics
@@ -33,22 +37,30 @@ data:
 #   features:
 #     - HOG
 #   orientations: 9
-#   pixels_per_cell: 8 #assumes cubic shape
-#   cells_per_block: 4 #assumes cubic shape
+#   pixels_per_cell: 16 #assumes cubic shape
+#   cells_per_block: 8 #assumes cubic shape
 #   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
 
 #   plot: True
 #   compare:  ['run_PCA', 'histogram_per_img']
 
 
-feature_extraction:
-  method: SkIMG
-  features:
-    - CANNY
-  sigma: 5
+# feature_extraction:
+#   method: SkIMG
+#   features:
+#     - SOBEL
+#   #sigma: 10
 
+#   plot: True
+#   compare:  ['run_PCA', 'histogram_per_img']
+
+
+
+feature_extraction:
+  method: SimCLR
+  backbone: resnet50
   plot: True
-  compare:  ['run_PCA', 'histogram_per_img']
+  compare: ['run_PCA', 'histogram_per_img']
 
 
 output:

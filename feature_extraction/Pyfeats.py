@@ -1,7 +1,6 @@
 import SimpleITK as sitk
 import radiomics
 import numpy as np
-from radiomics import featureextractor
 import six
 import pyfeats
 
@@ -19,11 +18,11 @@ class Pyfeats():
         self.out_sub_dir = config.feature_extraction.method
 
         if config.feature_extraction.features[0] == 'ALL':
-            # self.feat_dict = {'fos':'mask)', 
-            #                   'ngtdm_features':'mask, d=1)',
-            #                   'glrlm_features':'mask, Ng=256)'
-            # }
-            self.feat_dict = {'glrlm_features':'mask, Ng=256)'}
+            self.feat_dict = {'fos':'mask)', 
+                              'ngtdm_features':'mask, d=1)',
+                              'glrlm_features':'mask, Ng=256)'
+            }
+            #self.feat_dict = {'glrlm_features':'mask, Ng=256)'}
             # , 
             #                   'glrlm_features':'mask, Ng=256)'
             # }
@@ -57,7 +56,7 @@ class Pyfeats():
         return feat_dict
     
 
-    def _get_feature_arr(self, mat_arr):
+    def _get_feature_arr(self, mat_arr, pat_id):
         # Take input imge arr of multiple channels and caclulate features per channel
         feat_arr_allchannels,feat_names =np.array([]), np.array([])
         

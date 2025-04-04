@@ -10,6 +10,11 @@ class Visuals():
         self.img_scale = config.data.img_scale
         self.sub_dir = sub_dir
         os.makedirs(os.path.join(self.output_path,self.sub_dir), exist_ok=True)
+        self.dpi = config.data.dpi
+        self.set_max = config.data.set_max
+        self.set_max_feat = config.data.set_max_feat
+
+        self.img_ext = '.svg'
         return
     
     def plot_features_fromdict(self, name, orig_arr, feature_map, plot_list):
@@ -38,7 +43,9 @@ class Visuals():
             i = i+1
         # plt.show()
         plt.tight_layout()  # Adjust layout to avoid overlap
-        plt.savefig(os.path.join(self.output_path,self.sub_dir,name), dpi=1000)
+        plt.savefig(os.path.join(self.output_path,self.sub_dir,name+self.img_ext), dpi=self.dpi)
+        plt.savefig(os.path.join(self.output_path,self.sub_dir,name+'.png'), dpi=self.dpi)
+
         plt.close()
 
         return
@@ -61,16 +68,21 @@ class Visuals():
 
                 # Set color limits based on the data range for each subplot
                 _min =np.min(arr[i])
-                _max = np.max(arr[i])
 
-                if _max > 3*np.mean(arr[i]):               
-                    _max=np.mean(arr[i])
+                if self.set_max == None:
+                    _max = np.max(arr[i])
 
+                    if _max > 3*np.mean(arr[i]):               
+                        _max=np.mean(arr[i])
+                else:
+                    _max = np.float64(self.set_max[i])
                 ax.set_clim(_min, _max)
                 # Add a colorbar for each plot
                 fig.colorbar(ax, ax=axes[i])
         
-            plt.savefig(os.path.join(self.output_path,folder_name,name),dpi=1000)
+            plt.savefig(os.path.join(self.output_path,folder_name,name+self.img_ext),dpi=self.dpi)
+            plt.savefig(os.path.join(self.output_path,folder_name,name+'.png'),dpi=self.dpi)
+
 
             plt.close()
 
@@ -91,6 +103,14 @@ class Visuals():
             _min =np.min(img_arr[j]*self.img_scale[j],)
             _max = np.max(img_arr[j]*self.img_scale[j],)
 
+            if self.set_max == None:
+                _max = np.max(img_arr[j])
+
+                if _max > 3*np.mean(img_arr[j]):               
+                    _max=np.mean(img_arr[j])
+            else:
+                _max = np.float64(self.set_max[j])
+
             # if _max > 3*np.mean(img_arr[j]*self.img_scale[j],):               
             #     _max=np.mean(img_arr[j]*self.img_scale[j],)
 
@@ -100,8 +120,9 @@ class Visuals():
                             # Add a colorbar for each plot
             #axes.set_clim(_min, _max)
             fig.colorbar(axes, ax=ax[j][0])
+            _feat_max = self.set_max_feat[j]
 
-            axes_2 =ax[j][1].imshow(f_arr, vmin =f_arr.min(),vmax= f_arr.max()) 
+            axes_2 =ax[j][1].imshow(f_arr, vmin =f_arr.min(),vmax= _feat_max) 
             ax[j][1].set_title(f.split('_')[-1]+' Features')
             ax[j][1].axis('off')
             fig.colorbar(axes_2, ax=ax[j][1])
@@ -109,6 +130,8 @@ class Visuals():
             j = j+1 
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')), dpi=1000)
+        plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+self.img_ext), dpi=self.dpi)
+        plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+'.png'), dpi=self.dpi)
+
         plt.close()
         return
