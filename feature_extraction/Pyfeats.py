@@ -70,5 +70,6 @@ class Pyfeats():
                 feat_arr_allchannels = features_per_channel
 
         feat_names = np.expand_dims(labels, axis=0)
+        feat_arr_allchannels = np.expand_dims(feat_arr_allchannels, axis=0)
 
         return feat_arr_allchannels, feat_names
