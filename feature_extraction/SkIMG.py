@@ -140,5 +140,8 @@ class SkIMG():
         feat_names_arr=np.expand_dims(np.array(feat_names), axis =0)
         # feat_names = np.expand_dims(labels, axis=0)
 
+        ### features_per_channel: SHAPE SHOULD BE [IMG, C, H, W]
+        ### faeture_names_arr: SHAPE SHOULD BE [IMG, NAMES]
+
         return features_per_channel, feat_names_arr
     

@@ -12,8 +12,8 @@ data:
   ## define the disease and control as the folders where the data is located
   control: 'Cont'
   disease: 'PAN'
-  resample: [224, 224] #[512,512] #[2048,2048]
-  patch_size: None #256 #8 #grid size for patches, splits up imae
+  resample: [2048,2048] #[224, 224] #[1792,1792] #
+  patch_size: None #224 #None #256 #8 #grid size for patches, splits up imae
 
 # feature_extraction:
 #   method: Pyradiomics
@@ -25,12 +25,12 @@ data:
 #   plot: True
 #   compare: ['run_PCA', 'histogram_per_img']
 
-# feature_extraction:
-#   method: Pyfeats
-#   features:
-#     - ALL
-#   plot: True
-#   compare: ['plot_stat_difference']
+feature_extraction:
+  method: Pyfeats
+  features:
+    - ALL
+  plot: True
+  compare: ['plot_stat_difference','run_PCA',]
 
 # feature_extraction:
 #   method: SkIMG
@@ -60,7 +60,7 @@ feature_extraction:
   method: SimCLR
   backbone: resnet50
   plot: True
-  compare: ['run_PCA', 'histogram_per_img']
+  compare: ['run_PCA','run_tSNE','run_UMAP']
 
 
 output:

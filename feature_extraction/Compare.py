@@ -3,10 +3,15 @@ import numpy as np
 import os 
 from scipy import stats
 import sklearn
+
+from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 import math
+import umap.umap_ as umap
+
+
 class Compare():
     def __init__(self, config, dataloader):
         self.config = config
@@ -42,6 +47,9 @@ class Compare():
 
         feature_labels = np.squeeze(self.img_features_labels_arr[0],0)
         feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
+        if len(feat_arr.shape) == 4:
+            feat_arr = np.squeeze(feat_arr, axis=1)
+
         if normalize == True:
             feat_arr = self.normalize_array(feat_arr)
 
@@ -56,7 +64,7 @@ class Compare():
 
 
         ##for each channel calculate the feature difference
-        channels = feat_arr.shape[1]
+        channels = feat_arr.shape[2]
         for c in range(channels):
             # Create the bar plot
             fig, ax = plt.subplots(constrained_layout=True)
@@ -187,52 +195,186 @@ class Compare():
             
         return
     
-    def run_PCA(self, scale_data=False):
+    def run_PCA(self, scale_data=True):
+        '''feat array input'''        
         _feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
 
-        fig, axes = plt.subplots(1,_feat_arr.shape[2],figsize=(5*_feat_arr.shape[2],5))
+        #if this shape is 3 then structure is [sample, channels, img_features], if its 4 then the features are per pixel and the output features are images
 
-        for c in range(_feat_arr.shape[2]):
-            feat_arr = _feat_arr[:,:,c,:,:]
-            classes = np.squeeze(self.img_class_torch.cpu().detach().numpy(), axis=0)
+        if len(_feat_arr.shape)==4:
+            feat_grid = False
 
-            flatten_feat_arr =  np.reshape(feat_arr, (feat_arr.shape[0], np.prod(feat_arr.shape[1:])))
+        for j in range((2)):
+            #looping twice to save pca and normalised pca feature outputs 
+            fig, axes = plt.subplots(1,_feat_arr.shape[2],figsize=(5*_feat_arr.shape[2],5))
 
-            #Scale data
-            if scale_data == True:
-                scaler = StandardScaler()
-                scaler.fit(flatten_feat_arr)
-                flatten_feat_arr=scaler.transform(flatten_feat_arr)    
+            for c in range(_feat_arr.shape[2]):
+                if feat_grid == False:
+                    feat_arr = _feat_arr[:,:,c,:]
+                else:                
+                    feat_arr = _feat_arr[:,:,c,:,:]
+                classes = np.squeeze(self.img_class_torch.cpu().detach().numpy(), axis=0)
 
-            feats_fit_pca = PCA(n_components=2).fit_transform(flatten_feat_arr)
+                flatten_feat_arr =  np.reshape(feat_arr, (feat_arr.shape[0], np.prod(feat_arr.shape[1:])))
 
-            axes[c].set_xlim(-1,1)
-            axes[c].set_ylim(-1,1)
-            axes[c].set_xlabel("Component 1")
-            axes[c].set_ylabel("Component 2")
-            axes[c].grid()
-            axes[c].set_title('Channel '+str(c))
+                #Scale data
+                if scale_data == True:
+                    scaler = StandardScaler()
+                    scaler.fit(flatten_feat_arr)
+                    flatten_feat_arr=scaler.transform(flatten_feat_arr)    
 
-            # score=feats_fit_pca[:,0:2]
-            # xs = score[:,0]
-            # ys = score[:,1]
-            # axes[c].scatter(xs * scalex,ys * scaley, c = classes) # labels = [self.control_str, self.disease_str])
-            
-            # Separate two classes (Iris Setosa vs. Iris Versicolor for this example)
-            class1 = feats_fit_pca[classes == 0]  # First class (Setosa)
-            class2 = feats_fit_pca[classes == 1]  # Second class (Versicolor)
-            scalex = 1.0/(feats_fit_pca[:,0].max() - feats_fit_pca[:,0].min())
-            scaley = 1.0/(feats_fit_pca[:,1].max() - feats_fit_pca[:,1].min())
-            # Scatter plot
-            axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
-            axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='yellow', label=self.disease_str)
+                # feats_fit_pca = PCA(n_components=2).fit_transform(flatten_feat_arr)
 
-            axes[c].legend([self.control_str, self.disease_str])
-            
-        # plt.show()
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.plt_name+'_PCA'))
-        plt.close()
+                umap_model = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.7, random_state=42)
+                feats_fit_pca = umap_model.fit_transform(flatten_feat_arr)
+
+                axes[c].set_xlabel("Component 1")
+                axes[c].set_ylabel("Component 2")
+                axes[c].grid()
+                axes[c].set_title('Channel '+str(c))
+
+                class1 = feats_fit_pca[classes == 0] 
+                class2 = feats_fit_pca[classes == 1] 
+                scalex=1.0
+                scaley=1.0
+
+                if j == 1:
+                    #standardise
+                    scalex = 1.0/(feats_fit_pca[:,0].max() - feats_fit_pca[:,0].min())
+                    scaley = 1.0/(feats_fit_pca[:,1].max() - feats_fit_pca[:,1].min())
+                    axes[c].set_xlim(-1,1)
+                    axes[c].set_ylim(-1,1)
+                
+                # Scatter plot
+                axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
+                axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='yellow', label=self.disease_str)
+
+                axes[c].legend([self.control_str, self.disease_str])
+                
+            # plt.show()
+            plt.tight_layout()
+            if j == 1:
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.plt_name+'_PCA_normalisedComponents'))
+            else:
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.plt_name+'_PCA'))
+            plt.close()
+        return
+    
+    def run_tSNE(self, scale_data=True):
+        '''feat array input'''        
+        _feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
+
+        #if this shape is 3 then structure is [sample, channels, img_features], if its 4 then the features are per pixel and the output features are images
+
+        if len(_feat_arr.shape)==4:
+            feat_grid = False
+
+        for j in range((2)):
+            #looping twice to save pca and normalised pca feature outputs 
+            fig, axes = plt.subplots(1,_feat_arr.shape[2],figsize=(5*_feat_arr.shape[2],5))
+
+            for c in range(_feat_arr.shape[2]):
+                if feat_grid == False:
+                    feat_arr = _feat_arr[:,:,c,:]
+                else:                
+                    feat_arr = _feat_arr[:,:,c,:,:]
+                classes = np.squeeze(self.img_class_torch.cpu().detach().numpy(), axis=0)
+
+                flatten_feat_arr =  np.reshape(feat_arr, (feat_arr.shape[0], np.prod(feat_arr.shape[1:])))
+
+                #Scale data
+                if scale_data == True:
+                    scaler = StandardScaler()
+                    scaler.fit(flatten_feat_arr)
+                    flatten_feat_arr=scaler.transform(flatten_feat_arr)    
+
+                tsne = TSNE(n_components=2, perplexity=5, random_state=42)
+                feats_fit_tsne = tsne.fit_transform(flatten_feat_arr)
+
+                axes[c].set_xlabel("Component 1")
+                axes[c].set_ylabel("Component 2")
+                axes[c].grid()
+                axes[c].set_title('Channel '+str(c))
+
+                class1 = feats_fit_tsne[classes == 0] 
+                class2 = feats_fit_tsne[classes == 1] 
+                scalex=1.0
+                scaley=1.0
+
+                if j == 1:
+                    #normalise
+                    axes[c].set_xlim(-1,1)
+                    axes[c].set_ylim(-1,1)
+                    scalex = 1.0/(feats_fit_tsne[:,0].max() - feats_fit_tsne[:,0].min())
+                    scaley = 1.0/(feats_fit_tsne[:,1].max() - feats_fit_tsne[:,1].min())
+                
+                # Scatter plot
+                axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
+                axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='yellow', label=self.disease_str)
+
+                axes[c].legend([self.control_str, self.disease_str])
+                
+            # plt.show()
+            plt.tight_layout()
+            if j == 1:
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.plt_name+'_tsne_normalisedComponents'))
+            else:
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.plt_name+'_tsne'))
+            plt.close()
+        return
+    
+    def run_UMAP(self, scale_data=True):
+        '''feat array input'''        
+        _feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
+
+        #if this shape is 3 then structure is [sample, channels, img_features], if its 4 then the features are per pixel and the output features are images
+
+        if len(_feat_arr.shape)==4:
+            feat_grid = False
+
+        for j in range((1)):#DONT LOOP BECAUSE UMAP VALUES CAN BE NEGATIVE SO WONT WORK
+
+            #looping twice to save pca and normalised pca feature outputs 
+            fig, axes = plt.subplots(1,_feat_arr.shape[2],figsize=(5*_feat_arr.shape[2],5))
+
+            for c in range(_feat_arr.shape[2]):
+                if feat_grid == False:
+                    feat_arr = _feat_arr[:,:,c,:]
+                else:                
+                    feat_arr = _feat_arr[:,:,c,:,:]
+                classes = np.squeeze(self.img_class_torch.cpu().detach().numpy(), axis=0)
+
+                flatten_feat_arr =  np.reshape(feat_arr, (feat_arr.shape[0], np.prod(feat_arr.shape[1:])))
+
+                #Scale data
+                if scale_data == True:
+                    scaler = StandardScaler()
+                    scaler.fit(flatten_feat_arr)
+                    flatten_feat_arr=scaler.transform(flatten_feat_arr)    
+
+                umap_model = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.7, random_state=42)
+                feats_fit_UMAP = umap_model.fit_transform(flatten_feat_arr)
+
+                axes[c].set_xlabel("Component 1")
+                axes[c].set_ylabel("Component 2")
+                axes[c].grid()
+                axes[c].set_title('Channel '+str(c))
+
+                class1 = feats_fit_UMAP[classes == 0] 
+                class2 = feats_fit_UMAP[classes == 1] 
+                scalex=1.0
+                scaley=1.0
+                
+                # Scatter plot
+                axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
+                axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='yellow', label=self.disease_str)
+
+                axes[c].legend([self.control_str, self.disease_str])
+                
+            # plt.show()
+
+            plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.plt_name+'_UMAP'))
+            plt.close()
         return
 
     def _report(self):

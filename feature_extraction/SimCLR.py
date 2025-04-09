@@ -61,8 +61,12 @@ class SimCLR(torch.nn.Module):
                 features_per_channel = np.concat([features_per_channel,np_feat],axis=0)
             except:
                 features_per_channel=np_feat
-
         feat_names_arr=np.array(["simclr features"])
+        feat_names_arr=np.expand_dims(np.array(feat_names_arr), axis =0)
+
+        features_per_channel=np.expand_dims(np.array(features_per_channel), axis =0)
+        ### features_per_channel: SHAPE SHOULD BE [IMG, C, H, W] or [img, c, num_FEATS] DEPENDING ON the features being calculated
+        ### faeture_names_arr: SHAPE SHOULD BE [IMG, NAMES]
 
 
         return features_per_channel, feat_names_arr
