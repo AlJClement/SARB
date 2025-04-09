@@ -1,5 +1,7 @@
 data:
-  mat_dir: '/home/allent/Desktop/data'
+  mat_dir: '/Users/allison/Desktop/data'
+  annotation_dir:  '/Users/allison/Desktop/data/yolo_annotations' #https://www.makesense.ai/
+  max_annotations: 3 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
   visuals: 
     - orig_cache # original files, each channel plotted
   img_scale: [1,1,1,1,1] #scales each channel FOR VISUALS - given by Mihoko
@@ -56,11 +58,11 @@ data:
 
 
 
-feature_extraction:
-  method: SimCLR
-  backbone: resnet50
-  plot: True
-  compare: ['run_PCA', 'histogram_per_img']
+# feature_extraction:
+#   method: SimCLR
+#   backbone: resnet50
+#   plot: True
+#   compare: ['run_PCA', 'histogram_per_img']
 
 
 output:

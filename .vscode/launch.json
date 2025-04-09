@@ -4,6 +4,13 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        {
+            "name": "obj_dect",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./run_object_detection.py",
+            "console": "integratedTerminal"
+        }        
 
         {
             "name": "feat_extraction",
