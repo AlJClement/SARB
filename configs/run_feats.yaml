@@ -30,7 +30,7 @@ feature_extraction:
   features:
     - ALL
   plot: True
-  compare: ['plot_stat_difference','run_PCA',]
+  compare: ['plot_stat_difference','run_PCA']
 
 # feature_extraction:
 #   method: SkIMG
@@ -56,11 +56,11 @@ feature_extraction:
 
 
 
-feature_extraction:
-  method: SimCLR
-  backbone: resnet50
-  plot: True
-  compare: ['run_PCA','run_tSNE','run_UMAP']
+# feature_extraction:
+#   method: SimCLR
+#   backbone: resnet50
+#   plot: True
+#   compare: ['run_PCA','run_tSNE','run_UMAP']
 
 
 output:

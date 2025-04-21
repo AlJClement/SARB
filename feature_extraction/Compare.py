@@ -67,7 +67,7 @@ class Compare():
         channels = feat_arr.shape[2]
         for c in range(channels):
             # Create the bar plot
-            fig, ax = plt.subplots(constrained_layout=True)
+            fig, ax = plt.subplots()#constrained_layout=True)
             x = np.arange(len(control_feats[c]))
             width = 0.3
             bars1 = ax.bar(x - width/2, control_feats[c], width, yerr=control_std[c], capsize=5, label='control', color='green', alpha=0.7)
@@ -87,14 +87,50 @@ class Compare():
             ax.set_xticks(x)
             ax.set_xticklabels(feature_labels.tolist())  # Set custom x-axis labels
 
-            ax.set_xlim([0, 0.75])
+            ax.set_ylim([0, 1])
 
             plt.legend()
             plt.show()
             plt.title(self.plt_name+'_'+str(c))
-            plt.tight_layout()
+            # plt.tight_layout()
             plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.comparison_type[0]+'_channel'+str(c)+'_bar_graph'))
             plt.close()
+
+        ### plot each feature seperately
+        channels = feat_arr.shape[2]
+        for c in range(channels):
+            # Create the bar plot
+            for f in range(len(feature_labels)):
+                fig, ax = plt.subplots()#constrained_layout=True)
+                vals_disease=feat_arr[index_disease][:,c,f]
+                vals_control=feat_arr[index_control][:,c,f]
+                t_stat, p_value = stats.ttest_ind(vals_disease, vals_control)
+                print(p_value)
+                if p_value < alpha:
+                    ax.text(f, y=np.max(np.concat((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
+                
+
+                width = 0.3
+                bars1 = ax.bar(1 - width/2, control_feats[c][f], width, yerr=control_std[c][f], capsize=5, label='control', color='green', alpha=0.7)
+                bars2 = ax.bar(1 + width/2, disease_feats[c][f], width, yerr=disease_std[c][f], capsize=5, label='disease', color='blue', alpha=0.7)
+
+
+                # Add labels and title
+                ax.set_ylabel('Feature Values')
+                ax.set_xlabel(str(feature_labels[f]))
+                
+                if p_value < alpha:
+                    text=str(p_value)+'*' 
+                else:
+                    text=str(p_value)
+                plt.text(0.7,0.1,text, ha='center', va='center', transform=ax.transAxes)
+                
+                plt.legend()
+                plt.show()
+                plt.title(self.plt_name+'_'+str(c))
+                # plt.tight_layout()
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.comparison_type[0]+'_channel'+str(c)+'_'+str(feature_labels[f])))
+                plt.close()
 
         return
     
@@ -203,6 +239,8 @@ class Compare():
 
         if len(_feat_arr.shape)==4:
             feat_grid = False
+        else:
+            feat_grid = True
 
         for j in range((2)):
             #looping twice to save pca and normalised pca feature outputs 
