@@ -17,6 +17,17 @@ data:
   resample: [2048,2048] #[224, 224] #[1792,1792] #
   patch_size: None #224 #None #256 #8 #grid size for patches, splits up imae
 
+object_detection:
+  method: Components
+  channel: 0 #choose which threshold to channel based on
+  threshold_lower: 0 #choose threshold value for structures, assumes its the same for g and r
+  threshold_upper: 0.37 #choose threshold value for structures, assumes its the same for g and r
+  threshold_upper_d: 0.37 #choose threshold value for structures, assumes its the same for g and r
+
+  size_g: 100000 #1500 chose num pixels for glomerulus thresholding
+  size_r: 9000 #100 chose num pixels for renal tubes thresholding
+  compactness_threshold: 0 #this is for deciding how round a shape is, will remove if it is below this
+
 # feature_extraction:
 #   method: Pyradiomics
 #   features:
@@ -56,11 +67,11 @@ data:
 #   plot: True
 #   compare:  ['run_PCA', 'histogram_per_img']
 
-feature_extraction:
-  method: SimCLR
-  backbone: resnet50
-  plot: True
-  compare: ['run_PCA','run_tSNE','run_UMAP']
+# feature_extraction:
+#   method: SimCLR
+#   backbone: resnet50
+#   plot: True
+#   compare: ['run_PCA','run_tSNE','run_UMAP']
 
 
 output:

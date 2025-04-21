@@ -12,13 +12,9 @@ def run_object_detection(config):
     #logger data setup
     t_start=datetime.datetime.now()
     t_start_str = datetime.datetime.now().strftime("%m_%d_%Y_%H%M%S")
-    #logger.setup_logger(os.path.join(config.output.loc,config.feature_extraction.method,'log_'+t_start_str))0-0
-    try:
-        # os.makedirs(os.path.join(config.output.loc,config.feature_extraction.method), exist_ok=True)
-        log=logger.setup_logger(os.path.join(config.output.loc,config.feature_extraction.method,'log_'+t_start_str))
-    except:
-        os.makedirs(os.path.join(config.output.loc,'object_detection'), exist_ok=True)
-        log=logger.setup_logger(os.path.join(config.output.loc,'object_detection','log_'+t_start_str))
+
+    os.makedirs(os.path.join(config.output.loc,'object_detection'), exist_ok=True)
+    log=logger.setup_logger(os.path.join(config.output.loc,'object_detection','log_'+t_start_str))
 
     log.info('START TIME:'+t_start_str)
     log_dict(log, config)
@@ -32,8 +28,8 @@ def run_object_detection(config):
     log.info('END DATALOAD TIME:'+t_loader.strftime("%m_%d_%Y_%H%M%S"))
     log.info('DIFFERENCE:'+ str(total_time))
 
-    ## run object detection from YOLO
-    # Compare(config, data)._report()
+    ## run object detection from selected method
+    ObjectDetection = eval(f"{config.object_detection.method}")
     ObjectDetection(config, data)._detect_objects()
     time_compare = datetime.datetime.now()
     total_time = time_compare-t_loader
