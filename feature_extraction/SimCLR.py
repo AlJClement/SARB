@@ -6,6 +6,10 @@ import numpy as np
 
 from torchvision.transforms.functional import to_pil_image
 
+# from efficientnet_pytorch import EfficientNet
+
+# # Load EfficientNet as the backbone
+# model = EfficientNet.from_pretrained('efficientnet-b0')  # You can choose other variants (b1, b2, b3, etc.)
 
 
 class SimCLR(torch.nn.Module):
@@ -23,8 +27,9 @@ class SimCLR(torch.nn.Module):
     def feat_extractor(self,img_tensor):
             # Load Pretrained Backbone
             # Load a pre-trained ResNet50 model (or any other backbone used in SimCLR)
-        model = models.resnet50(pretrained=True)
-
+        #model = models.resnet50(pretrained=True)
+        model = models.vgg19(pretrained=True)
+        #model = models.
         # Remove the final fully connected layer to extract features
         # Extract features from the penultimate layer (just before classification)
         model = torch.nn.Sequential(*list(model.children())[:-1])
@@ -56,7 +61,11 @@ class SimCLR(torch.nn.Module):
 
             # EXTRACT 
             feature_per_channel = self.feat_extractor(image_tensor)
-            np_feat = feature_per_channel.numpy().reshape(1,2048)
+            try:
+                np_feat = feature_per_channel.numpy().reshape(1,2048)
+            except:
+                np_feat = np.expand_dims(feature_per_channel.numpy().flatten(), axis=0)
+
             try:
                 features_per_channel = np.concat([features_per_channel,np_feat],axis=0)
             except:

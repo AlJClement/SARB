@@ -17,6 +17,8 @@ class SARB_dataloader(Dataset):
         self.array_path = array_path
         if 'orig_cache' in config.data.visuals:
             self.plot = True
+            self.save_channel0 =True
+
         self.visuals =  Visuals(config)
         self.normalize = config.data.normalize
 
@@ -28,15 +30,27 @@ class SARB_dataloader(Dataset):
         except:
             self.resample_size = None
 
-        self._feat_extractor = eval(f"{config.feature_extraction.method}")
-        self.feat_extractor= self._feat_extractor(config)
+        try:
+            self._feat_extractor = eval(f"{config.feature_extraction.method}")
+            self.feat_extractor= self._feat_extractor(config)
+        except:
+            self.feat_extractor= False
         
         if config.data.patch_size == False:
             self.patch_size = False
         else:
             self.patch_size = config.data.patch_size 
 
-        self.img_details, self.img_arr, self.img_class, self.img_features, self.img_feat_labels = self.get_numpy_dataset() 
+        
+        try:
+            #see if annotation path is defined
+            self.annotation_path = config.data.annotation_dir 
+            self.max_annotations = config.data.max_annotations
+            self.img_details, self.img_arr, self.label_arr, self.img_class, self.img_features, self.img_feat_labels = self.get_numpy_dataset()
+        except:
+            #no annotations
+            self.annotation_path = None
+            self.img_details, self.img_arr, self.img_class, self.img_features, self.img_feat_labels = self.get_numpy_dataset() 
 
 
 
@@ -95,6 +109,10 @@ class SARB_dataloader(Dataset):
             
         if self.plot==True:
             self.visuals.plot_cache(mat_dict)
+        
+        if self.save_channel0 ==True:
+            self.visuals.save_channel0(mat_dict, channel = 0)
+
             
         return mat_dict
     
@@ -132,7 +150,23 @@ class SARB_dataloader(Dataset):
 
         return patches
 
+    def get_label_from_patid(self, pat_id):
+        '''assumes yolo structure, label - bounding box [x center, y center, width, height]'''
+        file_path = os.path.join(self.annotation_path,pat_id +'.txt')
+        with open(file_path, "r") as file:
+            lines = file.readlines()
+                # Initialize an empty list to store the data
+        label_ls = []
 
+        for line in lines:
+            # Split each line by spaces and convert to float
+            parts = line.strip().split()
+            parts = [float(x) for x in parts]  # Convert to float for numerical operations
+
+            # Append the data to the list
+            label_ls.append(parts)
+        label_arr=np.array(label_ls)  # Read the entire file
+        return label_arr
 
     def get_numpy_dataset(self):
         '''loads arrays from file and puts into numpy dataset for dataloader
@@ -156,9 +190,15 @@ class SARB_dataloader(Dataset):
                 ### get patient info ### 
                 pat_id = file_name.split('/')[6]+'_'+file_name.split('/')[7].replace('_result','')
 
+                if self.annotation_path is not None:
+                    label_arr = self.get_label_from_patid(pat_id)
+        
                 ### load mat as array ### 
                 mat_contents = self.load_file(os.path.join(self.mat_dir,file_name))
                 mat_arr = mat_contents[self.array_path]
+
+                if self.save_channel0 ==True:
+                    self.visuals.save_channel0(mat_arr, pat_id, channel = 0)
 
                 if self.resample_size != None:
                     mat_arr = resize(mat_arr, self.resample_size)
@@ -189,23 +229,51 @@ class SARB_dataloader(Dataset):
                 mat_dict[pat_id] = channels
                 if self.plot==True:
                     self.visuals.plot_cache(mat_dict)
+                                    
                 
                 if self.patch_size == "None":
-                    feats_arr, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
+
+                    if self.feat_extractor==False:
+                        feats_arr, feat_label_arr = None, None
+                    else:
+                        feats_arr, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
 
                     if'img_details' in locals() :
                         img_details = np.concatenate((img_details,np.expand_dims(np.array([pat_id, file_name]),axis=0)),0)
                         img = np.concatenate((img,np.array([mat_arr])),0)
                         img_class = np.concatenate((img_class, np.expand_dims(disease_class,axis=0)),0)
-                        img_features = np.concatenate((img_features,np.expand_dims(feats_arr,axis=0)),0)
-                        img_features_labels = np.concatenate((img_features_labels,np.expand_dims(feat_label_arr,axis=0)),0)
+
+                        if self.feat_extractor==False:
+                            img_features = None
+                            img_features_labels = None
+                        else: 
+                            img_features = np.concatenate((img_features,np.expand_dims(feats_arr,axis=0)),0)
+                            img_features_labels = np.concatenate((img_features_labels,np.expand_dims(feat_label_arr,axis=0)),0)
+
+                        if self.annotation_path:
+                            #add zeros cols if they done match
+                            label_arr=np.expand_dims(label_arr,axis=0)
+                            if label_arr.shape[1] < self.max_annotations:
+                                _label_arr = np.zeros([1,self.max_annotations,5])
+                                _label_arr[:,:label_arr.shape[1],:] = label_arr
+                                labels_arr = np.concatenate((labels_arr, _label_arr), axis=0)
+                            else:
+                                labels_arr = label_arr
+
 
                     else:
                         img_details = np.expand_dims(np.array([pat_id, file_name]),axis=0)
                         img = np.array([mat_arr])
                         img_class = np.array([disease_class])
-                        img_features = np.expand_dims(feats_arr,axis=0)
-                        img_features_labels = np.expand_dims(feat_label_arr,axis=0)
+                        if self.feat_extractor==False:
+                            img_features = None
+                            img_features_labels = None
+                        else:
+                            img_features = np.expand_dims(feats_arr,axis=0)
+                            img_features_labels = np.expand_dims(feat_label_arr,axis=0)
+                        
+                        if self.annotation_path:
+                            labels_arr = np.expand_dims(label_arr,axis=0)
                 else:
                     ##patch the image and load each as a different sample
                     arr_patches = self.split_image_into_patches(mat_arr, (self.patch_size, self.patch_size))
@@ -236,37 +304,53 @@ class SARB_dataloader(Dataset):
 
                         if self.plot==True:
                             self.visuals.plot_cache(patches_dict)
-                        
-                        img_features_patch, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
+                    
+                        if self.feat_extractor==False:
+                            img_features_patch, feat_label_arr=None, None
+                        else:
+                            img_features_patch, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
 
                         if'img_details' in locals() :
                             img_details = np.concatenate((img_details,np.expand_dims(np.array([pat_id, file_name, patch]),axis=0)),0)
                             img = np.concatenate((img,np.array([arr_patch])),0)
                             img_class = np.concatenate((img_class, np.expand_dims(disease_class,axis=0)),0)
-                            img_features = np.concatenate((img_features,np.expand_dims(img_features_patch,axis=0)),0)
-                            img_features_labels = np.concatenate((img_features_labels,np.expand_dims(feat_label_arr,axis=0)),0)
+                            if self.feat_extractor==False:
+                                img_features, img_features_labels=None, None
+                            else:
+                                img_features = np.concatenate((img_features,np.expand_dims(img_features_patch,axis=0)),0)
+                                img_features_labels = np.concatenate((img_features_labels,np.expand_dims(feat_label_arr,axis=0)),0)
                         else:
                             img_details = np.expand_dims(np.array([pat_id, file_name,patch]),axis=0)
                             img = np.array([arr_patch])
                             img_class = np.array([disease_class])
-                            img_features = np.expand_dims(img_features_patch,axis=0)
-                            img_features_labels = np.expand_dims(feat_label_arr,axis=0)
+                            if self.feat_extractor==False:
+                                img_features=None
+                                img_feature_labels = None
+                            else:
+                                img_features = np.expand_dims(img_features_patch,axis=0)
+                                img_features_labels = np.expand_dims(feat_label_arr,axis=0)
 
 
         #expand dimensions for torch indexing
         img_details_arr = np.expand_dims(img_details,axis=1)
         img_arr = np.expand_dims(img,axis=1)
         img_class_arr = np.expand_dims(img_class,axis=0)
-        img_features_arr = np.expand_dims(img_features,axis=1)
-        img_features_labels_arr = img_features_labels
-
         #convert to torch
         img_torch = torch.from_numpy(img_arr).float()
         img_class_torch = torch.from_numpy(img_class_arr).float()
-        img_features_torch = torch.from_numpy(img_features_arr).float()
 
-        return img_details_arr, img_torch, img_class_torch, img_features_torch, img_features_labels_arr
+        if self.feat_extractor==False:
+            img_features_arr, img_features_labels_arr, img_features_torch = None,None,None
+        else:       
+            img_features_arr = np.expand_dims(img_features,axis=1)
+            img_features_labels_arr = img_features_labels
+            img_features_torch = torch.from_numpy(img_features_arr).float()
 
+        if self.annotation_path:
+            labels_arr = np.expand_dims(labels_arr,axis=1)
+            return img_details, img_arr, labels_arr, img_class, img_features, img_features_labels_arr
+        else:
+            return img_details_arr, img_torch, img_class_torch, img_features_torch, img_features_labels_arr
     
     
     def __getitem__(self, index):
@@ -276,6 +360,10 @@ class SARB_dataloader(Dataset):
         img_features = self.img_features[index]
         img_feat_labels = self.img_feat_labels[index]
 
+        if self.annotation_path:
+            label_arr = self.label_arr[index]
+
+    
         # if self.perform_aug==True:
         #     # aug_seq = Augmentation(self.cfg).augmentation_fn()
 
@@ -286,7 +374,10 @@ class SARB_dataloader(Dataset):
             # if self.save_aug == True:
             #     visuals(self.aug_path+'/'+id).heatmaps(aug_image, aug_ann_array)
 
-        return img_details, img_arr, img_class, img_features, img_feat_labels
+        if self.annotation_path:
+            return img_details, img_arr, label_arr, img_class, img_features, img_feat_labels
+        else:
+            return img_details, img_arr, img_class, img_features, img_feat_labels
     
     def __len__(self):
         return len(self.img_details)

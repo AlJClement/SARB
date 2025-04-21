@@ -232,8 +232,11 @@ class Compare():
         return
     
     def run_PCA(self, scale_data=True):
-        '''feat array input'''        
-        _feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
+        '''feat array input'''   
+        try:     
+            _feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
+        except:
+            _feat_arr = np.squeeze(self.img_features_torch, axis=1)
 
         #if this shape is 3 then structure is [sample, channels, img_features], if its 4 then the features are per pixel and the output features are images
 

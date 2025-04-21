@@ -49,6 +49,20 @@ class Visuals():
         plt.close()
 
         return
+    
+    def save_channel0(self, arr,name, channel, folder_name = 'cache'):
+        '''takes in one mat array dictionary and plots each svg just the channel given'''
+        os.makedirs(os.path.join(self.output_path, folder_name), exist_ok=True)
+
+        # Plot the original image
+        plt.imshow(arr[:,:,channel], cmap='grey')
+        plt.axis('off')
+
+        plt.savefig(os.path.join(self.output_path,folder_name,name+'channel'+str(channel)+self.img_ext),dpi=self.dpi)
+        plt.savefig(os.path.join(self.output_path,folder_name,name+'channel'+str(channel)+'.jpg'),dpi=self.dpi)
+
+        plt.close()
+        return
         
     def plot_cache(self, mat_dict, folder_name = 'cache'):
         '''takes in dictionary of mat arrays, indexed by the scan name'''
@@ -131,7 +145,7 @@ class Visuals():
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+self.img_ext), dpi=self.dpi)
-        plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+'.png'), dpi=self.dpi)
+        plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+'.jph'), dpi=self.dpi)
 
         plt.close()
         return
