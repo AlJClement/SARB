@@ -44,19 +44,19 @@ object_detection:
 #     - ALL
 #   plot: True
 #   compare: ['plot_stat_difference','run_PCA']
+  
 
+feature_extraction:
+  method: SkIMG
+  features:
+    - HOG
+  orientations: 9
+  pixels_per_cell: 16 #assumes cubic shape
+  cells_per_block: 8 #assumes cubic shape
+  hog_intensity_rescale: 1 #0.1 #for visuals, rescale
 
-# feature_extraction:
-#   method: SkIMG
-#   features:
-#     - HOG
-#   orientations: 9
-#   pixels_per_cell: 16 #assumes cubic shape
-#   cells_per_block: 8 #assumes cubic shape
-#   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
-
-#   plot: True
-#   compare:  ['run_PCA', 'histogram_per_img']
+  plot: True
+  compare:  ['run_PCA', 'histogram_per_img']
 
 
 # feature_extraction:

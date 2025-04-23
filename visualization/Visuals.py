@@ -145,7 +145,7 @@ class Visuals():
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+self.img_ext), dpi=self.dpi)
-        plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+'.jph'), dpi=self.dpi)
+        plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+'.jpg'), dpi=self.dpi)
 
         plt.close()
         return
