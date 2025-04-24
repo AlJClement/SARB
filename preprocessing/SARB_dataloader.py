@@ -179,8 +179,10 @@ class SARB_dataloader(Dataset):
         
         '''
         mat_dict = {}
+        ls_dir = os.listdir(self.mat_dir)
+        cleaned_files = [f for f in ls_dir if f != '.DS_Store']
 
-        for folder in os.listdir(self.mat_dir):
+        for folder in cleaned_files:
             #input data directories must have specific folders for disease and control as listed in the control file (ex. PAN and Cont)
             print('loading: ', folder)
 

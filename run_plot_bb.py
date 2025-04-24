@@ -197,8 +197,8 @@ def plot_bounding_boxes(name, output_dir, image=None, boxes=[], add_radius=[0,0]
 add_radius = [90,90]
 # dir = '/Users/allison/Desktop/nii_repo/SARB/output/object_detection_components/Contkid1_middlekidney_edited'
 # data = '/Users/allison/Desktop/Cont/Contkid1_middlekidney'
-dir = '/Users/allison/Desktop/nii_repo/SARB/output/object_detection_components/Contkid1_leftkidney_edited'
-data = '/Users/allison/Desktop/Cont/20250220_Contkid1_leftkidney'
+dir = '/Users/allison/Desktop/nii_repo/SARB/output/object_detection_components/Contkid1_middlekidney_edited'
+data = '/Users/allison/Desktop/20250221_Contkid1_middlekidney'
 output_dir = dir +'/new'
 os.makedirs(output_dir,exist_ok=True)
 

@@ -1,6 +1,6 @@
 data:
   mat_dir: '/Users/allison/Desktop/data'
-  annotation_dir: None #'/home/allent/Desktop/yolo_annotations' #https://www.makesense.ai/
+  annotation_dir: None #'/Users/allison/Desktop/data/yolo_annotations' #https://www.makesense.ai/
   max_annotations: 3 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
   visuals: 
     - orig_cache # original files, each channel plotted
@@ -26,7 +26,7 @@ object_detection:
   threshold_upper_d:  0.37 #choose threshold value for structures, assumes its the same for g and r
 
   size_g: 1000000 #1500 chose num pixels for glomerulus thresholding
-  size_r: 6000 #100 chose num pixels for renal tubes thresholding
+  size_r: 8000 #100 chose num pixels for renal tubes thresholding
   compactness_threshold: 0 #this is for deciding how round a shape is, will remove if it is below this
   med_size: 20
 
