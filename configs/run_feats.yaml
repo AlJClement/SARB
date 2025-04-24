@@ -1,6 +1,6 @@
 data:
   mat_dir: '/Users/allison/Desktop/data'
-  annotation_dir:  '/Users/allison/Desktop/data/yolo_annotations' #https://www.makesense.ai/
+  annotation_dir: None #'/home/allent/Desktop/yolo_annotations' #https://www.makesense.ai/
   max_annotations: 3 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
   visuals: 
     - orig_cache # original files, each channel plotted
@@ -20,13 +20,15 @@ data:
 object_detection:
   method: Components
   channel: 0 #choose which threshold to channel based on
+  ## open png slicer play with windows in segmentation options then choose the best window, divide by 255.
   threshold_lower: 0 #choose threshold value for structures, assumes its the same for g and r
   threshold_upper: 0.37 #choose threshold value for structures, assumes its the same for g and r
-  threshold_upper_d: 0.37 #choose threshold value for structures, assumes its the same for g and r
+  threshold_upper_d:  0.37 #choose threshold value for structures, assumes its the same for g and r
 
-  size_g: 100000 #1500 chose num pixels for glomerulus thresholding
-  size_r: 9000 #100 chose num pixels for renal tubes thresholding
-  compactness_threshold: 0.2 #this is for deciding how round a shape is, will remove if it is below this
+  size_g: 1000000 #1500 chose num pixels for glomerulus thresholding
+  size_r: 6000 #100 chose num pixels for renal tubes thresholding
+  compactness_threshold: 0 #this is for deciding how round a shape is, will remove if it is below this
+  med_size: 20
 
 # feature_extraction:
 #   method: Pyradiomics
@@ -43,7 +45,8 @@ object_detection:
 #   features:
 #     - ALL
 #   plot: True
-#   compare: ['plot_stat_difference','run_PCA',]
+#   compare: ['plot_stat_difference','run_PCA']
+
 
 # feature_extraction:
 #   method: SkIMG

@@ -49,6 +49,7 @@ class SARB_dataloader(Dataset):
             self.img_details, self.img_arr, self.label_arr, self.img_class, self.img_features, self.img_feat_labels = self.get_numpy_dataset()
         except:
             #no annotations
+            self.annotation_path = None
             self.img_details, self.img_arr, self.img_class, self.img_features, self.img_feat_labels = self.get_numpy_dataset() 
 
 
@@ -65,6 +66,7 @@ class SARB_dataloader(Dataset):
         returns a mat_arr as the array'''
         mat_contents = self.load(os.path.join(self.mat_dir,file_name))
         mat_arr = mat_contents[self.array_path]
+        
         if self.normalize == True:
             data_min = np.min(mat_arr, axis=(1,2), keepdims=True)
             data_max = np.max(mat_arr, axis=(1,2), keepdims=True)
@@ -149,7 +151,6 @@ class SARB_dataloader(Dataset):
 
         return patches
 
-
     def get_label_from_patid(self, pat_id):
         '''assumes yolo structure, label - bounding box [x center, y center, width, height]'''
         file_path = os.path.join(self.annotation_path,pat_id +'.txt')
@@ -190,7 +191,7 @@ class SARB_dataloader(Dataset):
                 ### get patient info ### 
                 pat_id = file_name.split('/')[6]+'_'+file_name.split('/')[7].replace('_result','')
 
-                if self.annotation_path:
+                if self.annotation_path is not None:
                     label_arr = self.get_label_from_patid(pat_id)
         
                 ### load mat as array ### 

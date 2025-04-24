@@ -9,6 +9,7 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import cv2
 import math
+import torch
 
 import matplotlib.patches as patches
 
@@ -26,7 +27,8 @@ class Components():
         self.lower_thresh = self.config.object_detection.threshold_lower #choose threshold value for structures, assumes its the same for g and r
         self.upper_thresh = self.config.object_detection.threshold_upper #choose threshold value for structures, assumes its the same for g and r
         self.upper_thresh_d = self.config.object_detection.threshold_upper_d #choose threshold value for structures, assumes its the same for g and r
-        
+        self.med_size = config.object_detection.med_size
+
         try:
             self.edge_pad_buffer = self.config.object_detection.edge_pad_buffer #adds padding around detected bounding box
         except:
@@ -36,7 +38,6 @@ class Components():
         self.size_r = self.config.object_detection.size_r  #chose pixel size for renal tubes thresholding
         self.control_str = config.data.control
         self.disease_str = config.data.disease
-        self.med_size = 20
 
         self.dataloader = dataloader
 
@@ -46,8 +47,13 @@ class Components():
         os.makedirs(os.path.join(self.output_dir,self.output_sub_dir), exist_ok=True)
 
         self.plt_name = self.output_sub_dir+'_'+self.control_str+'_'+self.disease_str+'_comparison'
+
+        self.img_details_arr, self.img_torch, self.img_class_torch, self.img_features_torch, self.img_features_labels_arr = dataloader.dataset.img_details, dataloader.dataset.img_arr, dataloader.dataset.img_class, dataloader.dataset.img_features, dataloader.dataset.img_feat_labels
         
-        self.img_details_arr, self.img_torch, self.label_torch, self.img_class_torch, self.img_features_torch, self.img_features_labels_arr = dataloader.dataset.img_details, dataloader.dataset.img_arr, dataloader.dataset.label_arr, dataloader.dataset.img_class, dataloader.dataset.img_features, dataloader.dataset.img_feat_labels
+        if torch.is_tensor(self.img_torch)==True:
+            self.img_torch= self.img_torch.numpy()
+            self.img_class_torch=self.img_class_torch.numpy()
+            
         self.img_size = config.data.resample[0]
 
         pass
@@ -98,7 +104,13 @@ class Components():
             
             image_for_threshold = image[self.channel]
             
-            if self.img_class_torch[pat_idx] == 0:
+            try:
+                pat_class = self.img_class_torch[0][pat_idx]
+            except:
+                pat_class = self.img_class_torch.numpy()[0][pat_idx]
+            
+
+            if pat_class==0:
                 upper_threshold = self.upper_thresh 
             else:
                 upper_threshold = self.upper_thresh_d
@@ -106,7 +118,8 @@ class Components():
             binary = ((image_for_threshold >= self.lower_thresh) & (image_for_threshold <= upper_threshold )).astype(np.uint8)
 
             # Flip 0s to 1s and 1s to 0s
-            binary = 1 - binary
+            if self.channel==0:
+                binary = 1 - binary
             binary_itk = sitk.GetImageFromArray(binary)
             binary_itk = sitk.Median(binary_itk, [self.med_size, self.med_size])  # 10x10 neighborhood for 2D image
 
@@ -119,14 +132,41 @@ class Components():
                 ##Step 2: Relabel components by size (largest = label 1, next = 2, etc.)
             relabeled = sitk.RelabelComponent(cc, sortByObjectSize=True)
 
+            try:
+                #check if any labels identified
+                stats.GetNumberOfPixels(20)
+            except:
+                print('RE-Thresholding with mean: ', image[self.channel].mean())
+                upper_threshold = image[self.channel].mean()
+                # Create binary mask: 1 where value is in [lower, upper], else 0
+                binary = ((image_for_threshold >= self.lower_thresh) & (image_for_threshold <= upper_threshold )).astype(np.uint8)
+
+                # Flip 0s to 1s and 1s to 0s
+                if self.channel==0:
+                    binary = 1 - binary
+
+                binary_itk = sitk.GetImageFromArray(binary)
+                binary_itk = sitk.Median(binary_itk, [self.med_size, self.med_size])  # 10x10 neighborhood for 2D image
+
+                cc = sitk.ConnectedComponent(binary_itk)
+                cc = sitk.RelabelComponent(cc, sortByObjectSize=True)
+
+                # Extract stats
+                stats = sitk.LabelShapeStatisticsImageFilter()
+                stats.Execute(cc)
+                    ##Step 2: Relabel components by size (largest = label 1, next = 2, etc.)
+                relabeled = sitk.RelabelComponent(cc, sortByObjectSize=True)
+
             # Step 3: Extract top 5 labels (they will be labeled 1 to 5 after )
             top_labels = list(range(1, 40))  # labels 1 to 5
-            plt.imshow(binary)
-            plt.savefig('test.png')
 
+            plt.imshow(binary, cmap='gray')
+            plt.savefig('test.png')
+            _binary = binary * 255
+            # Save the image
+            cv2.imwrite('binary_image.png', _binary)
             # Step 4: Plot each of the top 5 components
             fig, axs = plt.subplots(2,10, figsize=(20, 5))
-
 
             #create empty lists to append the new bounding boxes too.
             g = []
@@ -186,7 +226,7 @@ class Components():
                 else:
 
                     if self.is_round(stats.GetNumberOfPixels(label),stats.GetPerimeter(label),0):
-                        if self.img_class_torch[pat_idx] == 0:
+                        if self.img_class_torch[0][pat_idx] == 0:
                             size_r = self.size_r 
                         else:
                             size_r = self.size_r + 3000
@@ -213,16 +253,25 @@ class Components():
                         
 
 
-            plt.tight_layout()
-            plt.show()
-            plt.savefig(self.output_dir+'/'+self.output_sub_dir+'/'+name+'_segments.png',dpi=300)
+                    plt.tight_layout()
+                    # plt.show()
+                    # plt.close()
+                    os.makedirs(self.output_dir+'/'+self.output_sub_dir, exist_ok=True)
+                    try:
+                        plt.savefig(self.output_dir+'/'+self.output_sub_dir+'/'+name+'_segments.png',dpi=300)
+                    except:
+                        name = name[0]
+                        plt.savefig(self.output_dir+'/'+self.output_sub_dir+'/'+name+'_segments.png',dpi=300)
 
-            bounding_boxes = g+r
-            self.plot_bounding_boxes(name, image_for_threshold, bounding_boxes)
-            plt.close()
+
+                    bounding_boxes = g+r
+                    self.plot_bounding_boxes(name, image_for_threshold, bounding_boxes)
+                    plt.close()
+                
 
             ##save bb to text
             # Open file in write mode (this will create the file if it doesn't exist)
+        
             file = os.path.join(self.output_dir,self.output_sub_dir,name+'_boundingboxs')
             with open(file+".txt", "+w") as file:
                 for item in bounding_boxes:
