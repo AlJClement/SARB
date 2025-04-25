@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 import math
 import yaml
 from ultralytics import YOLO
-
+import cv2
 class ObjectDetection():
     def __init__(self, config, dataloader):
         self.dataset_yaml_name = 'yolov5_config.yaml'

@@ -108,6 +108,9 @@ def plot_bounding_boxes(name, output_dir, image=None, boxes=[], add_radius=[0,0]
         # plt.savefig(output_dir+'/'+name,dpi=300)
 
     c=0
+    
+    fig, ax = plt.subplots()
+
     # Add each bounding box to the plot
     for i, x_min, y_min, width, height in boxes:
         if i == 0:
@@ -120,10 +123,13 @@ def plot_bounding_boxes(name, output_dir, image=None, boxes=[], add_radius=[0,0]
         ax.add_patch(rect)
         c=c+1
     
+    ax.imshow(image, cmap='gray', aspect='auto')
+    fig.add_axes(ax)
+
     ax.set_title("Bounding Boxes")
     # plt.show()
     print(name)
-    plt.savefig(output_dir+'/bb_'+name,dpi=300)
+    plt.savefig(output_dir+'/bb_'+name)#,dpi=300)
     plt.close()
 
     fig, ax = plt.subplots()
@@ -152,14 +158,14 @@ def plot_bounding_boxes(name, output_dir, image=None, boxes=[], add_radius=[0,0]
 
                 
 
-            rect = patches.Rectangle((x_min, y_min), width, height, linewidth=0.2, edgecolor=col, facecolor='none')
+            rect = patches.Rectangle((x_min, y_min), width, height, linewidth=0.5, edgecolor=col, facecolor='none')
             ax.text(x_min+20, y_min+20, str(c), fontsize=5, ha='center', va='center', color='white')
             ax.add_patch(rect)
             c=c+1
             
             ##save bb to text
-            with open(file_name+".txt", "a") as file:
-                file.write(str(i)+" "+str(x_min)+" "+str(y_min)+" "+str(width)+" "+str(height)+' \n')
+            with open(output_dir+'/'+name[:-4]+".txt", "a") as file:
+                file.write(str(i)+" "+str(round(x_min/2048,6))+" "+str(round(y_min/2048,6))+" "+str(round(width/2048,6))+" "+str(round(height/2048,6))+' \n')
             
             new_boxes.append([i,x_min,y_min,width,height])
 
@@ -195,10 +201,10 @@ def plot_bounding_boxes(name, output_dir, image=None, boxes=[], add_radius=[0,0]
 
 
 add_radius = [90,90]
-# dir = '/Users/allison/Desktop/nii_repo/SARB/output/object_detection_components/Contkid1_middlekidney_edited'
-# data = '/Users/allison/Desktop/Cont/Contkid1_middlekidney'
-dir = '/Users/allison/Desktop/nii_repo/SARB/output/object_detection_components/Contkid1_middlekidney_edited'
-data = '/Users/allison/Desktop/20250221_Contkid1_middlekidney'
+# dir = '/Users/allison/Desktop/nii_repo/SARB/output/object_detection_components/PANd7kid1_middlekidney_edited'
+# data = '/Users/allison/Desktop/PAN/20250223_PANd7kid1_middlekidney'
+dir = '/Users/allison/Desktop/nii_repo/SARB/output/object_detection_components/Contkid1_leftkidney_edited'
+data = '/Users/allison/Desktop/Cont/20250220_Contkid1_leftkidney'
 output_dir = dir +'/new'
 os.makedirs(output_dir,exist_ok=True)
 
@@ -206,6 +212,7 @@ png_files = [filename for filename in os.listdir(dir) if filename.lower().endswi
 
 all_files = []
 for root, dirs, files in os.walk(data):
+    print(files)
     for file in files:
         full_path = os.path.join(root, file)
         if '.mat' in full_path:

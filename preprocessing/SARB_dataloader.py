@@ -18,6 +18,11 @@ class SARB_dataloader(Dataset):
         if 'orig_cache' in config.data.visuals:
             self.plot = True
             self.save_channel0 =True
+        self.output_path = config.output.loc
+        os.makedirs(self.output_path, exist_ok=True)
+        self.output_dir = self.output_path+'/feats'
+        os.makedirs(os.path.join(self.output_dir), exist_ok=True)
+
 
         self.visuals =  Visuals(config)
         self.normalize = config.data.normalize
@@ -31,6 +36,7 @@ class SARB_dataloader(Dataset):
             self.resample_size = None
 
         try:
+            self.feat_name = config.feature_extraction.method
             self._feat_extractor = eval(f"{config.feature_extraction.method}")
             self.feat_extractor= self._feat_extractor(config)
         except:
@@ -239,7 +245,15 @@ class SARB_dataloader(Dataset):
                     if self.feat_extractor==False:
                         feats_arr, feat_label_arr = None, None
                     else:
-                        feats_arr, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
+                        try:
+                            data = np.load(self.output_dir+'/'+self.feat_name+pat_id+".npz")
+                            feats_arr = data['arr1']
+                            feat_label_arr = data['arr2']
+                            print('loading feature:'+self.output_dir+'/'+self.feat_name+pat_id+".npz")
+                        except:
+                            feats_arr, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
+                            np.savez(self.output_dir+'/'+self.feat_name+pat_id+".npz", arr1=feats_arr, arr2=feat_label_arr)
+
 
                     if'img_details' in locals() :
                         img_details = np.concatenate((img_details,np.expand_dims(np.array([pat_id, file_name]),axis=0)),0)
