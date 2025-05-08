@@ -13,10 +13,10 @@
         }        
 
         {
-            "name": "feat_extraction",
+            "name": "feat_extraction_seg",
             "type": "debugpy",
             "request": "launch",
-            "program": "./run_feature_extraction.py",
+            "program": "./run_feature_extraction_segments.py",
             "console": "integratedTerminal"
         }
     ]
