@@ -11,6 +11,9 @@ from sklearn.preprocessing import StandardScaler
 import math
 import umap.umap_ as umap
 
+from scipy.optimize import curve_fit
+from scipy.stats import f as fff
+
 
 class Compare():
     def __init__(self, config, dataloader):
@@ -32,6 +35,8 @@ class Compare():
         self.plt_name = self.output_sub_dir+'_'+self.control_str+'_'+self.disease_str+'_comparison'
 
         self.comparison_type = config.feature_extraction.compare
+        self.exponential_comparison = config.feature_extraction.compare_exponential
+
         
         self.img_details_arr, self.img_torch, self.img_class_torch, self.img_features_torch, self.img_features_labels_arr = dataloader.dataset.img_details, dataloader.dataset.img_arr, dataloader.dataset.img_class, dataloader.dataset.img_features, dataloader.dataset.img_feat_labels
 
@@ -46,9 +51,12 @@ class Compare():
          Then it plots again list of features (label). '''
 
         feature_labels = np.squeeze(self.img_features_labels_arr[0],0)
+        
+        #shape of feat array is pat, channels, features
         feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
-        if len(feat_arr.shape) == 4:
-            feat_arr = np.squeeze(feat_arr, axis=1)
+        
+        if len(feat_arr.shape) == 4: #shape of feat array is pat, channels, features (image) - if featues is image, stack them all into an arary 
+            feat_arr = feat_arr.reshape(feat_arr.shape[0], feat_arr.shape[1], feat_arr.shape[2]*feat_arr.shape[3])
 
         if normalize == True:
             feat_arr = self.normalize_array(feat_arr)
@@ -62,9 +70,9 @@ class Compare():
         control_feats, control_std = np.mean(feat_arr[index_control],axis=0), np.std(feat_arr[index_control],axis=0)
         disease_feats, disease_std = np.mean(feat_arr[index_disease],axis=0), np.std(feat_arr[index_disease],axis=0)
 
-
         ##for each channel calculate the feature difference
-        channels = feat_arr.shape[2]
+        channels = feat_arr.shape[1]
+        
         for c in range(channels):
             # Create the bar plot
             fig, ax = plt.subplots()#constrained_layout=True)
@@ -90,7 +98,7 @@ class Compare():
             ax.set_ylim([0, 1])
 
             plt.legend()
-            plt.show()
+            # plt.show()
             plt.title(self.plt_name+'_'+str(c))
             # plt.tight_layout()
             plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.comparison_type[0]+'_channel'+str(c)+'_bar_graph'))
@@ -133,6 +141,8 @@ class Compare():
                 plt.close()
 
         return
+    def exp_func(self, x, a, b):
+        return a * np.exp(b * x)
     
     def histogram_per_img(self, bins = 50, alpha = 0.05):
         '''input image features are N,f,C,h,w
@@ -140,6 +150,7 @@ class Compare():
         f: features
         C: channel
         h and w: height and width of image '''
+        
         feature_labels = np.squeeze(self.img_features_labels_arr[0],0)
         feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
 
@@ -154,7 +165,9 @@ class Compare():
         cont_feat_flatten= np.reshape(control_feats_arr, (control_feats_arr.shape[0],control_feats_arr.shape[1], int(np.prod(control_feats_arr.shape[2:]))))
         disease_feat_flatten=np.reshape(disease_feats_arr, (disease_feats_arr.shape[0],disease_feats_arr.shape[1], int(np.prod(disease_feats_arr.shape[2:]))))
 
-        ### plt individual features comboned channels
+        ### plt individual features combined channels
+        fig, axes = plt.subplots(1,1,figsize=(5*cont_feat_flatten.shape[1],5))
+
         for f in range(len(feature_labels)):
             feature_name = feature_labels[f]
             print(feature_name)
@@ -181,23 +194,64 @@ class Compare():
             plt.legend()
             transform=plt.gca().transAxes
             STR="p="+str(round(p_value))
+
+            if self.exponential_comparison == True:
+                x1 = np.linspace(0, 100,len(vals_control.flatten()))
+                x2 = np.linspace(0, 100,len(vals_disease.flatten()))
+
+                # Fit both datasets to exponential curve function
+                popt1, pcov1 = curve_fit(self.exp_func, x1, vals_control.flatten(), p0=(1, 1))
+                popt2, pcov2 = curve_fit(self.exp_func, x2, vals_disease.flatten(), p0=(1, 1))
+
+                # RSS for individual fits
+                rss1 = np.sum((vals_control.flatten() - self.exp_func(x, *popt1))**2)
+                rss2 = np.sum((vals_disease.flatten() - self.exp_func(x, *popt2))**2)
+
+                # Combine data
+                t_all = np.concatenate([x, x])
+                y_all = np.concatenate([vals_control.flatten(), vals_disease.flatten()])
+
+                # Fit combined model
+                popt_all, _ = curve_fit(self.exp_func, t_all, y_all, p0=[1, 1])
+                rss_combined = np.sum((y_all - self.exp_func(t_all, *popt_all))**2)
+
+                # F-test
+                p = 2  # number of parameters per model
+                n1, n2 = len(vals_control.flatten()), len(vals_disease.flatten())
+                numerator = (rss_combined - (rss1 + rss2)) / p
+                denominator = (rss1 + rss2) / (n1 + n2 - 2 * p)
+                F_value = numerator / denominator
+
+                # p-value
+                df1 = p
+                df2 = n1 + n2 - 2 * p
+                p_value = 1 - fff.cdf(F_value, df1, df2)
+
+                STR= STR+" F = {F_value:.4f}, p = {p_value:.4f}"
+
             plt.text(0.05, 0.99, STR, horizontalalignment='left', verticalalignment='top', transform=transform)
             plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,feature_name+'_histogram'))
             plt.close()
         
         ### plt individual channels
-        cont_feat_flatten= np.reshape(control_feats_arr, (control_feats_arr.shape[0],control_feats_arr.shape[1],control_feats_arr.shape[2], int(np.prod(control_feats_arr.shape[3:]))))
-        disease_feat_flatten=np.reshape(disease_feats_arr, (disease_feats_arr.shape[0],disease_feats_arr.shape[1],disease_feats_arr.shape[2], int(np.prod(disease_feats_arr.shape[3:]))))
-
+        #cont_feat_flatten= np.reshape(control_feats_arr, (control_feats_arr.shape[0],control_feats_arr.shape[1],control_feats_arr.shape[2], int(np.prod(control_feats_arr.shape[3:]))))
+        #disease_feat_flatten=np.reshape(disease_feats_arr, (disease_feats_arr.shape[0],disease_feats_arr.shape[1],disease_feats_arr.shape[2], int(np.prod(disease_feats_arr.shape[3:]))))
+        if len(feature_labels) == 1:
+            cont_feat_flatten = np.expand_dims(cont_feat_flatten, axis=1)
+            disease_feat_flatten = np.expand_dims(disease_feat_flatten, axis=1)
+        else:
+            pass
+            
         for f in range(len(feature_labels)):
-            fig, axes = plt.subplots(1,cont_feat_flatten.shape[2],figsize=(5*cont_feat_flatten.shape[2],5))
+            fig, axes = plt.subplots(1,cont_feat_flatten.shape[2],figsize=(5*cont_feat_flatten.shape[2]+5,5))
 
+            #loop in number of channels
             for c in range((cont_feat_flatten.shape[2])):
                 print(c)
                 feature_name = feature_labels[f]
                 print(feature_name)
                 kwargs = dict(histtype='stepfilled', alpha=0.3, bins=bins)
-
+                
                 for pat in range(cont_feat_flatten.shape[0]):
                     if pat == 0:
                         axes[c].hist(self.normalize_array(cont_feat_flatten[pat,f,c,:]), color = 'g',label=self.control_str, **kwargs)
@@ -217,16 +271,56 @@ class Compare():
                 axes[c].set_title("channel "+str(c), fontsize=10, pad=0)
                 axes[c].legend()
                 if p_value<0.05:
-                    STR="p="+str(p_value)+"**"+""
-                    STRmean="m_cont="+str(round(vals_control.mean(),2))+", m_disease="+str(round(vals_disease.mean(),4))
+                    STR="t-test p="+str((p_value))+"**"+""
+                    STRmean="m_cont="+str(round(vals_control.mean(),3))
+                    STRmean_d="m_disease="+str(round(vals_disease.mean(),3))                
                 else:
-                    STR="p="+str((p_value))
-                    STRmean="m_cont="+str(round(vals_control.mean(),2))+", m_disease="+str(round(vals_disease.mean(),4))
+                    STR="t-test p="+str((p_value))
+                    STRmean="m_cont="+str(round(vals_control.mean(),3))
+                    STRmean_d="m_disease="+str(round(vals_disease.mean(),3))
 
                 axes[c].text(0.05, 0.99, STR, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
                 axes[c].text(0.05, 0.95, STRmean, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
+                axes[c].text(0.05, 0.91, STRmean_d, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
 
-            plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,feature_name+'_hstogram_PERCHANNEL'))
+                if self.exponential_comparison == True:
+                    x1 = np.linspace(0, 100,len(vals_control.flatten()))
+                    x2 = np.linspace(0, 100,len(vals_disease.flatten()))
+
+                    # Fit both datasets to exponential curve function
+                    popt1, pcov1 = curve_fit(self.exp_func, x1, vals_control.flatten(), p0=(1, 0.1))
+                    popt2, pcov2 = curve_fit(self.exp_func, x2, vals_disease.flatten(), p0=(1, 0.1))
+
+                    # RSS for individual fits
+                    rss1 = np.sum((vals_control.flatten() - self.exp_func(x, *popt1))**2)
+                    rss2 = np.sum((vals_disease.flatten() - self.exp_func(x, *popt2))**2)
+
+                    # Combine data
+                    t_all = np.concatenate([x, x])
+                    y_all = np.concatenate([vals_control.flatten(), vals_disease.flatten()])
+
+                    # Fit combined model
+                    popt_all, _ = curve_fit(self.exp_func, t_all, y_all, p0=[1, 1])
+                    rss_combined = np.sum((y_all - self.exp_func(t_all, *popt_all))**2)
+
+                    # F-test
+                    p = 2  # number of parameters per model
+                    n1, n2 = len(vals_control.flatten()), len(vals_disease.flatten())
+                    numerator = (rss_combined - (rss1 + rss2)) / p
+                    denominator = (rss1 + rss2) / (n1 + n2 - 2 * p)
+                    F_value = numerator / denominator
+
+                    # p-value
+                    df1 = p
+                    df2 = n1 + n2 - 2 * p
+                    p_value = 1 - fff.cdf(F_value, df1, df2)
+
+                    STRmean_z=f"F = {F_value:.2f}, p = {p_value:.4}"
+
+                    axes[c].text(0.05, 0.85, STRmean_z, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
+
+
+            plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,feature_name+'_histogram_PERCHANNEL'))
             plt.close()
             
         return

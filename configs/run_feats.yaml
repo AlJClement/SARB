@@ -1,11 +1,11 @@
 data:
   mat_dir: '/Users/allison/Desktop/data'
-  annotation_dir: None #'/Users/allison/Desktop/data/yolo_annotations' #https://www.makesense.ai/
-  max_annotations: 3 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
+  annotation_dir: '/Users/allison/Desktop/data/yolo_annotations' #https://www.makesense.ai/
+  max_annotations: 20 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
   visuals: 
     - orig_cache # original files, each channel plotted
   img_scale: [1,1,1,1,1] #scales each channel FOR VISUALS - given by Mihoko
-  set_max: [255,10,10,10,255]
+  set_max: [255,1,1,1,255]
   set_max_feat: [1,1,1,1,1] #[200,50,50,50,200]
   dpi: 1000
   normalize: True
@@ -15,20 +15,20 @@ data:
   control: 'Cont'
   disease: 'PAN'
   resample: [2048,2048] #[224, 224] #[1792,1792] #
-  patch_size: None #224 #None #256 #8 #grid size for patches, splits up imae
+  patch_size: None #224 #None #256 #8 #grid size for patches, splits up image 
 
-object_detection:
-  method: Components
-  channel: 0 #choose which threshold to channel based on
-  ## open png slicer play with windows in segmentation options then choose the best window, divide by 255.
-  threshold_lower: 0 #choose threshold value for structures, assumes its the same for g and r
-  threshold_upper: 0.37 #choose threshold value for structures, assumes its the same for g and r
-  threshold_upper_d:  0.37 #choose threshold value for structures, assumes its the same for g and r
+# object_detection:
+#   method: Components
+#   channel: 0 #choose which threshold to channel based on
+#   ## open png slicer play with windows in segmentation options then choose the best window, divide by 255.
+#   threshold_lower: 0 #choose threshold value for structures, assumes its the same for g and r
+#   threshold_upper: 0.37 #choose threshold value for structures, assumes its the same for g and r
+#   threshold_upper_d:  0.37 #choose threshold value for structures, assumes its the same for g and r
 
-  size_g: 1000000 #1500 chose num pixels for glomerulus thresholding
-  size_r: 8000 #100 chose num pixels for renal tubes thresholding
-  compactness_threshold: 0 #this is for deciding how round a shape is, will remove if it is below this
-  med_size: 20
+#   size_g: 1000000 #1500 chose num pixels for glomerulus thresholding
+#   size_r: 8000 #100 chose num pixels for renal tubes thresholding
+#   compactness_threshold: 0 #this is for deciding how round a shape is, will remove if it is below this
+#   med_size: 20
 
 # feature_extraction:
 #   method: Pyradiomics
@@ -40,12 +40,25 @@ object_detection:
 #   plot: True
 #   compare: ['run_PCA', 'histogram_per_img']
 
-# feature_extraction:
-#   method: Pyfeats
-#   features:
-#     - ALL
-#   plot: True
-#   compare: ['plot_stat_difference','run_PCA']
+feature_extraction:
+  load_existing: '/Users/allison/Desktop/data/features/HOG' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+  load_images: False #saves alot of time if you dont need these
+  separate_classes: True 
+  anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus
+
+  method: SkIMG
+  features:
+    - HOG
+
+  orientations: 9
+  pixels_per_cell: 16 #assumes cubic shape
+  cells_per_block: 8 #assumes cubic shape
+  hog_intensity_rescale: 1 #0.1 #for visuals, rescale
+
+  plot: True
+
+  compare: ['histogram_per_img','run_PCA']
+  compare_exponential: True
   
 
 # feature_extraction:
