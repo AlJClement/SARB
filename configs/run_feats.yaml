@@ -93,26 +93,48 @@ data:
 #   plot: True
 #   compare:  ['run_PCA', 'histogram_per_img']
 
-
-# feature_extraction:
-#   method: SkIMG
-#   features:
-#     - CANNY
-#   sigma: 7
-
-#   plot: True
-#   compare:  ['run_PCA', 'histogram_per_img']
-
-
 feature_extraction:
-  load_existing: '/home/allent/Desktop/data/features/SimCLR' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+  load_existing: '/home/allent/Desktop/data/features/SOBEL'  #if this is true you dont need the images to be loaded ** avoid time consuming step.
   load_images: False #saves alot of time if you dont need these
   separate_classes: True 
-  anatomy_class: 1 #1 #select which class to run 0, renal tube, 1 is glomerulus
-  method: SimCLR
-  backbone: resnet50
+  anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus:
+  
+  method: SkIMG
+  features:
+    - SOBEL
+  
   plot: True
-  compare: ['run_PCA','run_tSNE','run_UMAP']
+  compare:  ['histogram_per_img','run_PCA']
+
+# feature_extraction:
+#   load_existing: '/home/allent/Desktop/data/features/HOG_ALL' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+#   load_images: False #saves alot of time if you dont need these
+#   separate_classes: True 
+#   anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus
+
+#   method: SkIMG
+#   features:
+#     - HOG
+
+#   orientations: 9
+#   pixels_per_cell: 16 #assumes cubic shape
+#   cells_per_block: 8 #assumes cubic shape
+#   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
+
+#   plot: True
+#   compare:  ['histogram_per_img', 'run_PCA']
+
+
+
+# feature_extraction: ## doesnt work because simclear doesnt get per pizel images. you must DO THIS FOR THE EACH SAMPLE SEPERATELY
+#   load_existing: '/home/allent/Desktop/data/features/SimCLR' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+#   load_images: False #saves alot of time if you dont need these
+#   separate_classes: True 
+#   anatomy_class: 1 #1 #select which class to run 0, renal tube, 1 is glomerulus
+#   method: SimCLR
+#   backbone: resnet50
+#   plot: True
+#   compare: ['run_PCA','run_tSNE','run_UMAP']
 
 
 output:

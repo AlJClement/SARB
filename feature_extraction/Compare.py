@@ -13,7 +13,7 @@ import umap.umap_ as umap
 
 from scipy.optimize import curve_fit
 from scipy.stats import f as fff
-
+from scipy.stats import mannwhitneyu
 
 class Compare():
     def __init__(self, config, dataloader):
@@ -35,7 +35,10 @@ class Compare():
         self.plt_name = self.output_sub_dir+'_'+self.control_str+'_'+self.disease_str+'_comparison'
 
         self.comparison_type = config.feature_extraction.compare
-        self.exponential_comparison = config.feature_extraction.compare_exponential
+        try:
+            self.exponential_comparison = config.feature_extraction.compare_exponential
+        except:
+            self.exponential_comparison = False
 
         
         self.img_details_arr, self.img_torch, self.img_class_torch, self.img_features_torch, self.img_features_labels_arr = dataloader.dataset.img_details, dataloader.dataset.img_arr, dataloader.dataset.img_class, dataloader.dataset.img_features, dataloader.dataset.img_feat_labels
@@ -85,8 +88,14 @@ class Compare():
                 vals_disease=feat_arr[index_disease][:,c,f]
                 vals_control=feat_arr[index_control][:,c,f]
                 t_stat, p_value = stats.ttest_ind(vals_disease, vals_control)
+
+                man_stat, p_man = mannwhitneyu(vals_disease, vals_control, alternative='two-sided')
+
                 print(p_value)
                 if p_value < alpha:
+                    ax.text(f, y=np.max(np.concat((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
+                
+                if p_man< alpha:
                     ax.text(f, y=np.max(np.concat((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
 
             # Add labels and title
@@ -113,6 +122,8 @@ class Compare():
                 vals_disease=feat_arr[index_disease][:,c,f]
                 vals_control=feat_arr[index_control][:,c,f]
                 t_stat, p_value = stats.ttest_ind(vals_disease, vals_control)
+                man_stat, p_man = mannwhitneyu(vals_disease, vals_control, alternative='two-sided')
+
                 print(p_value)
                 if p_value < alpha:
                     ax.text(f, y=np.max(np.concat((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
@@ -131,6 +142,7 @@ class Compare():
                     text=str(p_value)+'*' 
                 else:
                     text=str(p_value)
+
                 plt.text(0.7,0.1,text, ha='center', va='center', transform=ax.transAxes)
                 
                 plt.legend()
@@ -188,12 +200,9 @@ class Compare():
             vals_control=cont_feat_flatten[:,f,:]
             vals_disease=disease_feat_flatten[:,f,:]
             t_stat, p_value = stats.ttest_ind(vals_disease.flatten(), vals_control.flatten())
+            man_stat, p_man = mannwhitneyu(vals_disease.flatten(), vals_control.flatten(), alternative='two-sided')
 
-            plt.title(feature_name, fontsize=10, pad=0)
-            plt.show()
-            plt.legend()
-            transform=plt.gca().transAxes
-            STR="p="+str(round(p_value))
+            STR="p="+str(p_value)
 
             if self.exponential_comparison == True:
                 x1 = np.linspace(0, 100,len(vals_control.flatten()))
@@ -204,11 +213,11 @@ class Compare():
                 popt2, pcov2 = curve_fit(self.exp_func, x2, vals_disease.flatten(), p0=(1, 1))
 
                 # RSS for individual fits
-                rss1 = np.sum((vals_control.flatten() - self.exp_func(x, *popt1))**2)
-                rss2 = np.sum((vals_disease.flatten() - self.exp_func(x, *popt2))**2)
+                rss1 = np.sum((vals_control.flatten() - self.exp_func(x1, *popt1))**2)
+                rss2 = np.sum((vals_disease.flatten() - self.exp_func(x2, *popt2))**2)
 
                 # Combine data
-                t_all = np.concatenate([x, x])
+                t_all = np.concatenate([x1, x2])
                 y_all = np.concatenate([vals_control.flatten(), vals_disease.flatten()])
 
                 # Fit combined model
@@ -229,9 +238,35 @@ class Compare():
 
                 STR= STR+" F = {F_value:.4f}, p = {p_value:.4f}"
 
-            plt.text(0.05, 0.99, STR, horizontalalignment='left', verticalalignment='top', transform=transform)
+            if p_value<0.05:
+                STR="t-test p="+str((p_value))+"**"+""
+                STRmean="m_cont="+str(round(vals_control.mean(),3))
+                STRmean_d="m_disease="+str(round(vals_disease.mean(),3))
+            else:
+                STR="t-test p="+str((p_value))
+                STRmean="m_cont="+str(round(vals_control.mean(),3))
+                STRmean_d="m_disease="+str(round(vals_disease.mean(),3))       
+            
+            man_stat, p_man = mannwhitneyu(vals_disease.flatten(), vals_control.flatten(), alternative='two-sided')
+            if p_man<0.05:
+                STR_MAN = "man p ="+str((p_man))+"**"+""                
+            else:
+                STR_MAN = "man p ="+str((p_man))                
+
+            man_stat, p_man = mannwhitneyu(vals_disease.flatten(), vals_control.flatten(), alternative='two-sided')
+
+            plt.text(0.05, 0.99, STR, horizontalalignment='left', verticalalignment='top',transform=axes.transAxes)
+            plt.text(0.05, 0.95, STRmean, horizontalalignment='left', verticalalignment='top',transform=axes.transAxes)
+            plt.text(0.05, 0.91, STRmean_d, horizontalalignment='left', verticalalignment='top',transform=axes.transAxes)
+            plt.text(0.05, 0.86, STR_MAN, horizontalalignment='left', verticalalignment='top',transform=axes.transAxes)
+
+            plt.title(feature_name, fontsize=10, pad=0)
+            # plt.show()
+            plt.legend()
             plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,feature_name+'_histogram'))
-            plt.close()
+
+
+        plt.close()
         
         ### plt individual channels
         #cont_feat_flatten= np.reshape(control_feats_arr, (control_feats_arr.shape[0],control_feats_arr.shape[1],control_feats_arr.shape[2], int(np.prod(control_feats_arr.shape[3:]))))
@@ -279,9 +314,17 @@ class Compare():
                     STRmean="m_cont="+str(round(vals_control.mean(),3))
                     STRmean_d="m_disease="+str(round(vals_disease.mean(),3))
 
+                if p_man<0.05:
+                    STR_MAN = "man p ="+str((p_man))+"**"+""                
+                else:
+                    STR_MAN = "man p ="+str((p_man))                
+
+
+
                 axes[c].text(0.05, 0.99, STR, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
                 axes[c].text(0.05, 0.95, STRmean, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
                 axes[c].text(0.05, 0.91, STRmean_d, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
+                axes[c].text(0.05, 0.87, STR_MAN, horizontalalignment='left', verticalalignment='top',transform=axes[c].transAxes)
 
                 if self.exponential_comparison == True:
                     x1 = np.linspace(0, 100,len(vals_control.flatten()))
@@ -340,10 +383,11 @@ class Compare():
             feat_grid = True
 
         for j in range((2)):
-            #looping twice to save pca and normalised pca feature outputs 
-            fig, axes = plt.subplots(1,_feat_arr.shape[2],figsize=(5*_feat_arr.shape[2],5))
+            #looping twice to save pca and normalised pca feature outputs
+            # channels should be in shape 0 of features 
+            fig, axes = plt.subplots(1,_feat_arr.shape[1],figsize=(5*_feat_arr.shape[1],5))
 
-            for c in range(_feat_arr.shape[2]):
+            for c in range(_feat_arr.shape[1]):
                 if feat_grid == False:
                     feat_arr = _feat_arr[:,:,c,:]
                 else:                
@@ -381,8 +425,8 @@ class Compare():
                     axes[c].set_ylim(-1,1)
                 
                 # Scatter plot
-                axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
-                axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='yellow', label=self.disease_str)
+                axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='green', label=self.control_str)
+                axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='blue', label=self.disease_str)
 
                 axes[c].legend([self.control_str, self.disease_str])
                 
