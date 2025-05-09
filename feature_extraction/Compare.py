@@ -208,7 +208,7 @@ class Compare():
                 rss2 = np.sum((vals_disease.flatten() - self.exp_func(x, *popt2))**2)
 
                 # Combine data
-                t_all = np.concatenate([x, x])
+                t_all = np.concatenate([x1, x2])
                 y_all = np.concatenate([vals_control.flatten(), vals_disease.flatten()])
 
                 # Fit combined model
@@ -296,7 +296,7 @@ class Compare():
                     rss2 = np.sum((vals_disease.flatten() - self.exp_func(x, *popt2))**2)
 
                     # Combine data
-                    t_all = np.concatenate([x, x])
+                    t_all = np.concatenate([x1, x2])
                     y_all = np.concatenate([vals_control.flatten(), vals_disease.flatten()])
 
                     # Fit combined model

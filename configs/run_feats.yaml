@@ -58,7 +58,7 @@ feature_extraction:
   plot: True
 
   compare: ['histogram_per_img','run_PCA']
-  compare_exponential: True
+  compare_exponential: False
   
 
 # feature_extraction:
