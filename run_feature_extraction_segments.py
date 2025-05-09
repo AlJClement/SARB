@@ -9,6 +9,7 @@ from helpers import *
 def run_feature_extraction(config):
     
     #logger data setup
+    
     t_start=datetime.datetime.now()
     t_start_str = datetime.datetime.now().strftime("%m_%d_%Y_%H%M%S")
     #logger.setup_logger(os.path.join(config.output.loc,config.feature_extraction.method,'log_'+t_start_str))0-0

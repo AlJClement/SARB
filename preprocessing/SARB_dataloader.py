@@ -397,6 +397,8 @@ class SARB_dataloader(Dataset):
                                         channels=None
                                         feat_arr, feat_label_arr  = self.get_feat_arr(channels, pat_id+'_'+file_name.split('/')[7].split('_')[0])
 
+                                    # if len(feat_arr.shape)<4:
+                                    #     feat_arr=feat_arr.reshape(feat_arr.shape[0],feat_arr.shape[1],self.resample_size)
                                 #crop feat_arr to shape
                                 img_features_patch = self.get_img_crop_from_annotation(feat_arr, bb)     
 
@@ -480,7 +482,7 @@ class SARB_dataloader(Dataset):
         img_arr = np.expand_dims(img,axis=1)
         img_class_arr = np.expand_dims(img_class,axis=0)
         #convert to torch
-        if img_arr.any() == None:
+        if (img_arr==None).any():
             img_torch = None
         else:
             img_torch = torch.from_numpy(img_arr).float()

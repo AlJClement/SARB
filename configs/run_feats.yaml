@@ -1,6 +1,6 @@
 data:
-  mat_dir: '/Users/allison/Desktop/data'
-  annotation_dir: '/Users/allison/Desktop/data/yolo_annotations' #https://www.makesense.ai/
+  mat_dir: '/home/allent/Desktop/data'
+  annotation_dir: '/home/allent/Desktop/data/yolo_original_annotations' #https://www.makesense.ai/
   max_annotations: 20 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
   visuals: 
     - orig_cache # original files, each channel plotted
@@ -39,26 +39,32 @@ data:
 #   y_bound: 200
 #   plot: True
 #   compare: ['run_PCA', 'histogram_per_img']
+# feature_extraction:
+#   method: Pyfeats
+#   features:
+#     - ALL
+#   plot: True
+#   compare: ['plot_stat_difference','run_PCA']
+  
 
-feature_extraction:
-  load_existing: '/Users/allison/Desktop/data/features/HOG' #if this is true you dont need the images to be loaded ** avoid time consuming step.
-  load_images: False #saves alot of time if you dont need these
-  separate_classes: True 
-  anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus
+# feature_extraction:
+#   load_existing: '/Users/allison/Desktop/data/features/HOG' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+#   load_images: False #saves alot of time if you dont need these
+#   separate_classes: True 
+#   anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus
 
-  method: SkIMG
-  features:
-    - HOG
+#   method: SkIMG
+#   features:
+#     - HOG
 
-  orientations: 9
-  pixels_per_cell: 16 #assumes cubic shape
-  cells_per_block: 8 #assumes cubic shape
-  hog_intensity_rescale: 1 #0.1 #for visuals, rescale
+#   orientations: 9
+#   pixels_per_cell: 16 #assumes cubic shape
+#   cells_per_block: 8 #assumes cubic shape
+#   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
 
-  plot: True
-
-  compare: ['histogram_per_img','run_PCA']
-  compare_exponential: False
+#   plot: True
+#   compare: ['histogram_per_img','run_PCA']
+#   compare_exponential: True
   
 
 # feature_extraction:
@@ -77,13 +83,53 @@ feature_extraction:
 # feature_extraction:
 #   method: SkIMG
 #   features:
-#     - SOBEL
-#   #sigma: 10
+#     - HOG
+#   orientations: 9
+#   pixels_per_cell: 16 #assumes cubic shape
+#   cells_per_block: 8 #assumes cubic shape
+#   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
 
 #   plot: True
 #   compare:  ['run_PCA', 'histogram_per_img']
 
+feature_extraction:
+  load_existing: '/home/allent/Desktop/data/features/SOBEL'  #if this is true you dont need the images to be loaded ** avoid time consuming step.
+  load_images: False #saves alot of time if you dont need these
+  separate_classes: True 
+  anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus:
+  
+  method: SkIMG
+  features:
+    - SOBEL
+  
+  plot: True
+  compare:  ['histogram_per_img','run_PCA']
+
 # feature_extraction:
+#   load_existing: '/home/allent/Desktop/data/features/HOG_ALL' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+#   load_images: False #saves alot of time if you dont need these
+#   separate_classes: True 
+#   anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus
+
+#   method: SkIMG
+#   features:
+#     - HOG
+
+#   orientations: 9
+#   pixels_per_cell: 16 #assumes cubic shape
+#   cells_per_block: 8 #assumes cubic shape
+#   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
+
+#   plot: True
+#   compare:  ['histogram_per_img', 'run_PCA']
+
+
+
+# feature_extraction: ## doesnt work because simclear doesnt get per pizel images. you must DO THIS FOR THE EACH SAMPLE SEPERATELY
+#   load_existing: '/home/allent/Desktop/data/features/SimCLR' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+#   load_images: False #saves alot of time if you dont need these
+#   separate_classes: True 
+#   anatomy_class: 1 #1 #select which class to run 0, renal tube, 1 is glomerulus
 #   method: SimCLR
 #   backbone: resnet50
 #   plot: True
