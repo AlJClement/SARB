@@ -1,6 +1,6 @@
 data:
   mat_dir: '/Users/allison/Desktop/data'
-  annotation_dir: '/Users/allison/Desktop/_data/yolo_annotations' #https://www.makesense.ai/
+  # annotation_dir: '/Users/allison/Desktop/_data/yolo_annotations' # Comment out if you do not want this ex when runing object detection, do NOT set to None https://www.makesense.ai/
   max_annotations: 20 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
   visuals: 
     - orig_cache # original files, each channel plotted
@@ -18,7 +18,7 @@ data:
   patch_size: None #224 #None #256 #8 #grid size for patches, splits up imae
 
 object_detection:
-  method: YOLO
+  method:  Components #yolo
   channel: 0 #choose which threshold to channel based on
   ## open png slicer play with windows in segmentation options then choose the best window, divide by 255.
   threshold_lower: 0 #choose threshold value for structures, assumes its the same for g and r

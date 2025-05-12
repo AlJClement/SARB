@@ -356,6 +356,9 @@ class Compare():
                     # # Combine data
                     # t_all = np.concatenate([x1, x2])
                     # y_all = np.concatenate([vals_control.flatten(), vals_disease.flatten()])
+                    # Combine data
+                    # t_all = np.concatenate([x1, x2])
+                    # y_all = np.concatenate([vals_control.flatten(), vals_disease.flatten()])
 
                     # # Fit combined model
                     # popt_all, _ = curve_fit(self.exp_func, t_all, y_all, p0=[1, 1])

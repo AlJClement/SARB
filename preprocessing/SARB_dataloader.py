@@ -72,10 +72,13 @@ class SARB_dataloader(Dataset):
         try:
             #see if annotation path is defined
             self.annotation_path = config.data.annotation_dir 
+            if self.annotation_path == 'None':
+                raise ValueError('annotation_dir should not be set to None just remove this from config.')
             self.max_annotations = config.data.max_annotations
             x=1
         except:
             self.annotation_path = None
+            x=0
 
         if x == 1:
             self.img_details, self.img_arr, self.label_arr, self.img_class, self.img_features, self.img_feat_labels = self.get_numpy_dataset()
@@ -192,7 +195,7 @@ class SARB_dataloader(Dataset):
         if self.feat_extractor==False:
             feats_arr, feat_label_arr = None, None
         else:
-            if self.load_existing == 'None':#if this is true you dont need the images to be loaded ** avoid time consuming step.
+            if self.load_existing == None:#if this is true you dont need the images to be loaded ** avoid time consuming step.
                 feats_arr, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
                 np.savez(self.output_dir+'/'+self.feat_name+pat_id+".npz", arr1=feats_arr, arr2=feat_label_arr)
             else:
@@ -286,7 +289,7 @@ class SARB_dataloader(Dataset):
                 ### get patient info ### 
                 pat_id = file_name.split('/')[6]+'_'+file_name.split('/')[7].replace('_result','')
 
-                if self.annotation_path is not None:
+                if self.annotation_path!=None:
                     label_arr = self.get_label_from_patid(pat_id)
         
                 ### load mat as array ### 
@@ -334,7 +337,7 @@ class SARB_dataloader(Dataset):
                                 img_features = np.concatenate((img_features,np.expand_dims(feats_arr,axis=0)),0)
                                 img_features_labels = np.concatenate((img_features_labels,np.expand_dims(feat_label_arr,axis=0)),0)
 
-                            if self.annotation_path:
+                            if self.annotation_path!=None:
                                 #add zeros cols if they done match
                                 label_arr=np.expand_dims(label_arr,axis=0)
                                 if label_arr.shape[1] < self.max_annotations:
@@ -355,7 +358,7 @@ class SARB_dataloader(Dataset):
                                 img_features = np.expand_dims(feats_arr,axis=0)
                                 img_features_labels = np.expand_dims(feat_label_arr,axis=0)
                             
-                            if self.annotation_path:
+                            if self.annotation_path!=None:
                                 labels_arr = np.expand_dims(label_arr,axis=0)
                                 #add zeros cols if they done match
 
@@ -493,7 +496,7 @@ class SARB_dataloader(Dataset):
             img_features_labels_arr = img_features_labels
             img_features_torch = torch.from_numpy(img_features_arr).float()
 
-        if self.annotation_path:
+        if self.annotation_path != None:
             labels_arr = np.expand_dims(labels_arr,axis=1)
             return img_details, img_arr, labels_arr, img_class_torch, img_features_torch, img_features_labels_arr
         else:
