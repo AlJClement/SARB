@@ -1,21 +1,126 @@
+#DATA Inputs
 data:
-  mat_dir: '/home/allent/Desktop/data'
-  annotation_dir: '/home/allent/Desktop/data/yolo_original_annotations' #https://www.makesense.ai/
-  max_annotations: 20 #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape
+  #This code is designed to start with mat dir and loop to get all the data, any scans in that folder will be used in the analysis.
+  #scans are loaded into a dataloader for organization.
+  mat_dir: '/Users/allison/Desktop/data' #directory of mat files.
+
+  #Annotations are in yolo format and put all in one flat directory. They should have the same name as the mat_dir name with '_boundingbox.txt' at the end of the name.
+  annotation_dir: '/Users/allison/Desktop/data/clinican_annotations' 
+  #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape for data loader purposes
+  max_annotations: 10
+
+  #visuals are created if the images are loaded, and features are calculated.
   visuals: 
-    - orig_cache # original files, each channel plotted
+    - orig_cache #original files, each channel plotted
   img_scale: [1,1,1,1,1] #scales each channel FOR VISUALS - given by Mihoko
-  set_max: [255,1,1,1,255]
-  set_max_feat: [1,1,1,1,1] #[200,50,50,50,200]
-  dpi: 1000
+  set_max: [255,10,10,10,255] #set max for each channel to allow for easy visualisation
+  set_max_feat: [1,1,1,1,1] #set max value for features for visualization
+  dpi: 1000 #save image quality
   normalize: True
   
-  batch_size: 1
-  ## define the disease and control as the folders where the data is located
+  batch_size: 1 #will load each file into the data loader as 1 sample
+
+  ## define the disease and control as the folders 
   control: 'Cont'
   disease: 'PAN'
-  resample: [2048,2048] #[224, 224] #[1792,1792] #
-  patch_size: None #224 #None #256 #8 #grid size for patches, splits up image 
+
+  #Resample will resample the images from the original size [2048,2048] to the size below. Smaller samplings allow for easier computations but we loose some info in resampling.
+  resample: [512,512] #this is the size the image will be resampled for feature calculations.
+
+  #If you want to split the image into a grid, setting this value will crop the image into patches of these sizes during data loading and save them each as a sample.
+  patch_size: None #224 #None #256 #8 
+
+
+### FEATURE EXTRACTION DEFINITION
+feature_extraction:
+  load_existing: False #'/Users/allison/Desktop/data/features/HOG'  
+  #if this is true you dont need the images to be loaded ** avoid time consuming step.
+  #if you want to create extraction set this to False.
+
+  load_images: True 
+  #must be set to True if you are doing feature extraction
+  #saves alot of time if you are not calculating features again
+
+  #if you have annotations you can separate them by making the separate classes
+  separate_classes: True #false if you want entire image
+  anatomy_class: 0
+  feature_classnames: ['Glo', 'Prox', 'Distal']
+  #select which class to run 1 is glomerulus and 0 when class is renal tubes for ORIGINAL Semgenations
+  #clinicans have defined 0 Glo 1 Prox and 2 Distal which will be used from now on as per below.
+
+  # From Doctor Matsui.
+  #'' After consulting with Dr. Shimano last week, we decided that for tubular
+  # regions, we would only annotate areas where the tubules are cleanly
+  # cross-sectioned rather than those that are obliquely sectioned.
+  # Additionally, we agreed to distinguish between "proximal tubules" and
+  # "distal tubules/cortical collecting ducts" in our annotations.
+
+  # Therefore, the attached files contain the following labels:
+
+  # 0. Glo (glomeruli)
+  # 1. Prox (proximal tubules)
+  # 2. Distal (distal tubules/cortical collecting ducts) ''
+  
+  #choose the method, see notes for details about the end of the document about potential feature extraction methods and how they differ in inputs required.
+  method: SkIMG
+  features:
+    - HOG
+  
+  #HOG Specific information see documentation.
+  orientations: 9
+  pixels_per_cell: 16 #assumes cubic shape
+  cells_per_block: 8 #assumes cubic shape
+  hog_intensity_rescale: 1 #0.1 #for visuals, rescale
+
+  plot: True
+
+  #comparison of features, depends on feature.
+  compare:  ['histogram_per_img','run_PCA']
+
+  #histogram per image
+  #this can only be done if we have a feature per pixel of the image.
+  #plots features generated for each image (or bounding box) as a histogram and overlays the histograms.
+  #means for control vs disease are plotted along with t-stat,m-stat for comparison.
+
+  #run_PCA
+  #Flattens disease and healthy features, compares using top two principal components.
+
+output:
+  loc: ./output
+  visuals:
+    - plot_features
+
+
+
+# feature_extraction:
+#   load_existing: '/home/allent/Desktop/data/features/HOG_ALL' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+#   load_images: False #saves alot of time if you dont need these
+#   separate_classes: True 
+#   anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus
+
+#   method: SkIMG
+#   features:
+#     - HOG
+
+#   orientations: 9
+#   pixels_per_cell: 16 #assumes cubic shape
+#   cells_per_block: 8 #assumes cubic shape
+#   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
+
+#   plot: True
+#   compare:  ['histogram_per_img', 'run_PCA']
+
+
+
+# feature_extraction: ## doesnt work because simclear doesnt get per pizel images. you must DO THIS FOR THE EACH SAMPLE SEPERATELY
+#   load_existing: '/home/allent/Desktop/data/features/SimCLR' #if this is true you dont need the images to be loaded ** avoid time consuming step.
+#   load_images: False #saves alot of time if you dont need these
+#   separate_classes: True 
+#   anatomy_class: 1 #1 #select which class to run 0, renal tube, 1 is glomerulus
+#   method: SimCLR
+#   backbone: resnet50
+#   plot: True
+#   compare: ['run_PCA','run_tSNE','run_UMAP']
 
 # object_detection:
 #   method: Components
@@ -91,52 +196,3 @@ data:
 
 #   plot: True
 #   compare:  ['run_PCA', 'histogram_per_img']
-
-feature_extraction:
-  load_existing: '/home/allent/Desktop/data/features/SOBEL'  #if this is true you dont need the images to be loaded ** avoid time consuming step.
-  load_images: False #saves alot of time if you dont need these
-  separate_classes: True 
-  anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus:
-  
-  method: SkIMG
-  features:
-    - SOBEL
-  
-  plot: True
-  compare:  ['histogram_per_img','run_PCA']
-
-# feature_extraction:
-#   load_existing: '/home/allent/Desktop/data/features/HOG_ALL' #if this is true you dont need the images to be loaded ** avoid time consuming step.
-#   load_images: False #saves alot of time if you dont need these
-#   separate_classes: True 
-#   anatomy_class: 0 #1 #select which class to run 0, renal tube, 1 is glomerulus
-
-#   method: SkIMG
-#   features:
-#     - HOG
-
-#   orientations: 9
-#   pixels_per_cell: 16 #assumes cubic shape
-#   cells_per_block: 8 #assumes cubic shape
-#   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
-
-#   plot: True
-#   compare:  ['histogram_per_img', 'run_PCA']
-
-
-
-# feature_extraction: ## doesnt work because simclear doesnt get per pizel images. you must DO THIS FOR THE EACH SAMPLE SEPERATELY
-#   load_existing: '/home/allent/Desktop/data/features/SimCLR' #if this is true you dont need the images to be loaded ** avoid time consuming step.
-#   load_images: False #saves alot of time if you dont need these
-#   separate_classes: True 
-#   anatomy_class: 1 #1 #select which class to run 0, renal tube, 1 is glomerulus
-#   method: SimCLR
-#   backbone: resnet50
-#   plot: True
-#   compare: ['run_PCA','run_tSNE','run_UMAP']
-
-
-output:
-  loc: ./output
-  visuals:
-    - plot_features

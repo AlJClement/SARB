@@ -16,7 +16,7 @@
             "name": "feat_extraction_seg",
             "type": "debugpy",
             "request": "launch",
-            "program": "./run_feature_extraction_segments.py",
+            "program": "./run_feature_extraction.py",
             "console": "integratedTerminal"
         }
     ]

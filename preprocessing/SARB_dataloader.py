@@ -9,18 +9,21 @@ import glob
 import tqdm
 from torch.utils.data import Dataset
 from skimage.transform import resize
+import matplotlib.patches as patches
+
 
 class SARB_dataloader(Dataset):
     def __init__(self, config, array_path = 'X_est_all'):
-        self.feat_tmp_value = 200000
 
         self.img_size = config.data.resample
-        
+        self.normalize_feature_bb=True
+        self.feat_classes = config.feature_extraction.feature_classnames
+
         self.mat_dir = config.data.mat_dir
         self.array_path = array_path
         if 'orig_cache' in config.data.visuals:
             self.plot = True
-            self.save_channel0 =True
+            self.save_channel0 = False
         self.output_path = config.output.loc
         os.makedirs(self.output_path, exist_ok=True)
         self.output_dir = self.output_path+'/feats'
@@ -33,8 +36,9 @@ class SARB_dataloader(Dataset):
         self.control_str = config.data.control
         self.disease_str = config.data.disease
 
+        self.orig_size = [2048,2048]
         #specify the number of samples to get (ex renal tubes have like 19 segmentations, so select first 4 for space)
-        self.num_annotations_to_compare = 2
+        self.num_annotations_to_compare = 5
 
         try:
             self.resample_size = config.data.resample
@@ -116,11 +120,8 @@ class SARB_dataloader(Dataset):
             mat_arr = mat_contents[self.array_path]
             #move channels to first axis
             mat_arr = np.moveaxis(mat_arr, -1, 0)
-            if self.normalize == True:
-                # data_min = np.min(mat_arr, axis=(1,2), keepdims=True)
-                # data_max = np.max(mat_arr, axis=(1,2), keepdims=True)
-                # scaled_mat_arr = (mat_arr - data_min) / (data_max - data_min)
 
+            if self.normalize == True:
                 ##normalise each channel
                 channels = self.get_normalize(mat_arr)
             else:
@@ -176,9 +177,12 @@ class SARB_dataloader(Dataset):
     def get_label_from_patid(self, pat_id):
         '''assumes yolo structure, label - bounding box [x center, y center, width, height]'''
         file_path = os.path.join(self.annotation_path,pat_id +'_boundingbox.txt')
-        with open(file_path, "r") as file:
-            lines = file.readlines()
+        try:
+            with open(file_path, "r") as file: ## if you get an error here its because there must be a matching annotation with each input image.
+                lines = file.readlines()
                 # Initialize an empty list to store the data
+        except:
+            raise ValueError('ERROR: You must have a matching txt annotation if you are loading annotations for all files in the data folder.')
         label_ls = []
 
         for line in lines:
@@ -193,10 +197,13 @@ class SARB_dataloader(Dataset):
     
     def get_feat_arr(self, channels, pat_id):
         if self.feat_extractor==False:
+            print('FEATURE EXTRACTOR IS FALSE')
             feats_arr, feat_label_arr = None, None
         else:
-            if self.load_existing == None:#if this is true you dont need the images to be loaded ** avoid time consuming step.
+            if self.load_existing == False:#if this is true you dont need the images to be loaded ** avoid time consuming step.
                 feats_arr, feat_label_arr = self.feat_extractor._get_feature_arr(channels, pat_id)
+                ## saving features 
+                print('Saving .npz features')
                 np.savez(self.output_dir+'/'+self.feat_name+pat_id+".npz", arr1=feats_arr, arr2=feat_label_arr)
             else:
                 # Loop through items in the directory
@@ -211,43 +218,64 @@ class SARB_dataloader(Dataset):
 
         return feats_arr, feat_label_arr 
     
-    def get_img_crop_from_annotation(self, img, annotation):
-        x_c, y_c, w, h = map(float, annotation)
-        w, h=self.resample_size
+    def get_img_crop_from_annotation(self, img, annotation, name='', plot_bb=True):
+        ''' This function takes an input image and annotation bounding box, and returns the new image as the reshaped value in the config file.
+
+        img: image or mat_arr, shape channel, height, width (c, h, w) 
+        anotation: the annotation as a bounding box, array of shape (x,y,w,h) 
+        
+        all_cropped: output shape (channels, h, w) 
+        '''
+
+        x_bb, y_bb, w_bb, h_bb = map(float, annotation)
+
+        #remove
+        if 'PAN' in name:
+            rad=90
+            x_bb, y_bb, w_bb, h_bb = map(float, annotation)
+            x1=int(x_bb)
+            y1=int(y_bb)
+            x2=int(w_bb)
+            y2=int(h_bb)
+        else:
+            # Calculate top-left and bottom-right coordinates
+            x1 = int(x_bb - w_bb / 2)
+            y1 = int(y_bb - h_bb / 2)
+            x2 = int(x_bb + w_bb / 2)
+            y2 = int(y_bb + h_bb / 2)
 
         #loop through each channel
-        for c in range(img.shape[1]):
+        for c in range(img.shape[0]):
 
-            img_channel = img[0,c,:,:]
-            # # Convert normalized to absolute pixel values
-            # x_c *= img_width
-            # y_c *= img_height
-            # w *= img_width
-            # h *= img_height
-            # tmp_img = np.ones(self.resample_size)*self.feat_tmp_value
-            
+            img_channel = img[c,:,:]
+            #resize image to new size
+            img_channel = resize(img_channel, self.resample_size)
 
-            # Calculate top-left and bottom-right coordinates
-            x1 = int(x_c - w / 2)
-            y1 = int(y_c - h / 2)
-            x2 = int(x_c + w / 2)
-            y2 = int(y_c + h / 2)
-
-            # Clamp to image bounds
-            x1, y1 = max(0, x1), max(0, y1)
-            x2, y2 = min(w, x2), min(h, y2)
+            fig, ax = plt.subplots()
 
             # Crop the object
             _tmp_img = img_channel[y1:y2, x1:x2]
-            tmp_img = resize(_tmp_img, self.resample_size)
-
-
-            _cropped = np.expand_dims(tmp_img,axis=0)
+            _tmp_img = resize(_tmp_img, self.resample_size)
+            _cropped = np.expand_dims(_tmp_img,axis=0)
 
             if 'all_cropped' in locals():
                 all_cropped = np.concatenate((all_cropped,_cropped),axis=0)
             else:
                 all_cropped =_cropped
+
+            
+            if plot_bb == True:
+                ax.imshow(img_channel,cmap='grey')
+                # Create a Rectangle patch
+                rect = patches.Rectangle((x1, y1),
+                                        w_bb,
+                                        h_bb,
+                                        linewidth=2,
+                                        edgecolor='red',
+                                        facecolor='none')
+                ax.add_patch(rect)
+                plt.savefig('./output/cache/'+name)
+
 
         return all_cropped
 
@@ -267,28 +295,38 @@ class SARB_dataloader(Dataset):
     
     def get_numpy_dataset(self):
         '''loads arrays from file and puts into numpy dataset for dataloader
-        img_details: is the filename containing important aquisiton details given by Mihoko
+        img_details: is the filename containing important aquisiton details given by Mihoko (list of string)]
         img: is array of image
         img_class: classification of healthy (0) or disease (1)
-        img_features: features generated from the features specified in configuration files
-        img_features_labels: features names 
+        img_features: features generated from the features specified in configuration files or loaded from prexisting save features (.npz files)
+        img_features_labels: features name(s)
         
         '''
         mat_dict = {}
         ls_dir = os.listdir(self.mat_dir)
-        cleaned_files = [f for f in ls_dir if f != '.DS_Store']
+
+        ## clean search lists to remove DS_Store and anything folders not disease or control.
+        cleaned_files = [item for item in [f for f in ls_dir if f != '.DS_Store'] if item == self.control_str or item == self.disease_str]
+        if len(cleaned_files) == 0:
+            raise ValueError('No disease or control str folders found. Please review your folder inputs in the configuration files!')
+
+
+        ### Loops through
+        print('loading features for patches of class: ', self.feature_extraction_class)
 
         for folder in cleaned_files:
             #input data directories must have specific folders for disease and control as listed in the control file (ex. PAN and Cont)
-            print('loading: ', folder)
+            print('loading folder: ', folder)
 
             for i in tqdm.tqdm(range(len(glob.glob(os.path.join(self.mat_dir,folder)+'/*/*/*/**')))):
+                
                 file_name = sorted(glob.glob(os.path.join(self.mat_dir,folder)+'/*/*/*/**'))[i]
-                print('loading: ',file_name)
+                print('loading file: ',file_name)
 
                 ### get patient info ### 
                 pat_id = file_name.split('/')[6]+'_'+file_name.split('/')[7].replace('_result','')
 
+                ### get bounding box annotations ### 
                 if self.annotation_path!=None:
                     label_arr = self.get_label_from_patid(pat_id)
         
@@ -300,8 +338,9 @@ class SARB_dataloader(Dataset):
                     if self.save_channel0 ==True:
                         self.visuals.save_channel0(mat_arr, pat_id, channel = 0)
 
-                    if self.resample_size != None:
-                        mat_arr = resize(mat_arr, self.resample_size)
+                    if self.orig_size != None:
+                        #note image is resampled to the square size first of 2048 by 2048 as done for annotations
+                        mat_arr = resize(mat_arr, self.orig_size)
 
                     #move channels to first axis
                     mat_arr = np.moveaxis(mat_arr, -1, 0)
@@ -316,10 +355,75 @@ class SARB_dataloader(Dataset):
                     if self.plot==True:
                         self.visuals.plot_cache(mat_dict)
 
-                ### image class ### 
+                ### get image class ### 
                 disease_class = self.get_disease_class(folder)
 
+                ### if image is split into patches (see config) split the image into patches, else continue ### 
                 if self.patch_size == "None":
+                    ### separate classes, is if you want to load annotations per each image as a different batch input ###
+                    if self.separate_classes == True:
+                        ## cut the image into croped images from the annotaiton file
+                        # if mat arr doesnt exits, image was not loaded - raise error
+                        patches_dict = {}
+                        filtered_array = label_arr[label_arr[:, 0] == self.feature_extraction_class]
+
+                        #check max number of annotations only take the first self.num_annotations_to_compare
+                        if len(filtered_array)>self.num_annotations_to_compare:
+                            filtered_array= filtered_array[:self.num_annotations_to_compare,:]
+
+                        #loop through annotations, load OR calculate features
+                        for ann in tqdm.tqdm(range(len(filtered_array))):
+                            feat_class = self.feat_classes[self.feature_extraction_class]
+                            crop_name = pat_id +'_featclass'+feat_class+'_bb_annotation_'+str(ann)
+                            #bb is short for bounding box
+                            bb = filtered_array[ann][1:]
+                            #assumes image is cubic, resize 
+                            bb=bb*self.img_size[0]
+
+                            if self.load_images == True:
+                                arr_patch = self.get_img_crop_from_annotation(mat_arr, bb, crop_name)
+                                if self.normalize_feature_bb==True:
+                                    arr_patch = self.get_normalize(arr_patch)
+                            else:
+                                arr_patch = None
+
+                            #if load existing is False, calculate else load.
+                            if self.load_existing == False:
+                                img_features_patch, feat_label_arr=self.get_feat_arr(arr_patch, crop_name)
+                            else:
+                                ##load features and crop to new size
+                                if 'feat_arr' in locals():
+                                    pass
+                                else:
+                                    try:
+                                        feat_arr, feat_label_arr  = self.get_feat_arr(channels, pat_id+'_'+file_name.split('/')[7].split('_')[0])
+                                    except:
+                                        channels=None
+                                        feat_arr, feat_label_arr  = self.get_feat_arr(channels, pat_id+'_'+file_name.split('/')[7].split('_')[0])
+
+                                #crop feat_arr to shape
+                                img_features_patch = self.get_img_crop_from_annotation(feat_arr, bb)     
+                
+                                if self.annotation_path:
+                                    labels_arr = np.expand_dims(bb,axis=0)
+        
+                            
+
+                            if'img_details' in locals() :
+                                img_details = np.concatenate((img_details,np.expand_dims(np.array([pat_id, file_name, ann]),axis=0)),0)
+                                img = np.concatenate((img,np.array([arr_patch])),0)
+                                img_class = np.concatenate((img_class, np.expand_dims(disease_class,axis=0)),0)
+                                img_features = np.concatenate((img_features,np.expand_dims(img_features_patch,axis=0)),0)
+                                img_features_labels = np.concatenate((img_features_labels,np.expand_dims(feat_label_arr,axis=0)),0)
+                                labels_arr =np.concatenate((labels_arr,np.expand_dims(bb,axis=0)),0)
+
+                            else:
+                                img_details = np.expand_dims(np.array([pat_id, file_name,ann]),axis=0)
+                                img = np.array([arr_patch])
+                                img_class = np.array([disease_class])
+                                img_features = np.expand_dims(img_features_patch,axis=0)
+                                img_features_labels = np.expand_dims(feat_label_arr,axis=0)
+                                labels_arr = np.expand_dims(bb,axis=0)
 
                     if self.separate_classes == False:
                         #for preexisting feature loading and also for loading annotations as sepearte classses        
@@ -361,76 +465,6 @@ class SARB_dataloader(Dataset):
                             if self.annotation_path!=None:
                                 labels_arr = np.expand_dims(label_arr,axis=0)
                                 #add zeros cols if they done match
-
-                    if self.separate_classes == True:
-                        ##patch the image into segmentations from the annotaiton file
-                        # if mat arr doesnt exits, image was not loaded - raise error
-                        patches_dict = {}
-
-                        print('loading features for patches of class: ', self.feature_extraction_class)
-                        filtered_array = label_arr[label_arr[:, 0] == self.feature_extraction_class]
-
-                        #check max numer of annotations only take the first self.num_annotations_to_compare
-                        #check 
-                        if len(filtered_array)>self.num_annotations_to_compare:
-                            filtered_array= filtered_array[:self.num_annotations_to_compare,:]
-
-                        for ann in tqdm.tqdm(range(len(filtered_array))):
-                            bb = filtered_array[ann][1:]
-                            #assumes image is cubic
-                            bb=bb*self.img_size[0]
-
-                            if self.load_images == True:
-                                arr_patch = self.get_img_crop_from_annotation(mat_arr, bb)
-                            else:
-                                arr_patch = None
-
-                            
-                            if self.load_existing is not False:
-                                ##load features and crop to feature
-                                if 'feat_arr' in locals():
-                                    pass
-                                else:
-                                    try:
-                                        feat_arr, feat_label_arr  = self.get_feat_arr(channels, pat_id+'_'+file_name.split('/')[7].split('_')[0])
-                                    except:
-                                        channels=None
-                                        feat_arr, feat_label_arr  = self.get_feat_arr(channels, pat_id+'_'+file_name.split('/')[7].split('_')[0])
-
-                                    # if len(feat_arr.shape)<4:
-                                    #     feat_arr=feat_arr.reshape(feat_arr.shape[0],feat_arr.shape[1],self.resample_size)
-                                #crop feat_arr to shape
-                                img_features_patch = self.get_img_crop_from_annotation(feat_arr, bb)     
-
-                                                                
-                                if self.annotation_path:
-                                    labels_arr = np.expand_dims(bb,axis=0)
-                                    #add zeros cols if they done match
-                                    # if label_arr.shape[1] < self.max_annotations:
-                                    #     _label_arr = np.zeros([1,self.max_annotations,5])
-                                    #     _label_arr[:,:label_arr.shape[1],:] = label_arr
-                                    #     labels_arr = np.concatenate((labels_arr, _label_arr), axis=0)
-                                    # else:
-                                    #     labels_arr = label_arr
-                            
-
-                            if'img_details' in locals() :
-                                img_details = np.concatenate((img_details,np.expand_dims(np.array([pat_id, file_name, ann]),axis=0)),0)
-                                img = np.concatenate((img,np.array([arr_patch])),0)
-                                img_class = np.concatenate((img_class, np.expand_dims(disease_class,axis=0)),0)
-                                img_features = np.concatenate((img_features,np.expand_dims(img_features_patch,axis=0)),0)
-                                img_features_labels = np.concatenate((img_features_labels,np.expand_dims(feat_label_arr,axis=0)),0)
-                                labels_arr =np.concatenate((labels_arr,np.expand_dims(bb,axis=0)),0)
-
-                            else:
-                                img_details = np.expand_dims(np.array([pat_id, file_name,ann]),axis=0)
-                                img = np.array([arr_patch])
-                                img_class = np.array([disease_class])
-                                img_features = np.expand_dims(img_features_patch,axis=0)
-                                img_features_labels = np.expand_dims(feat_label_arr,axis=0)
-                                labels_arr = np.expand_dims(bb,axis=0)
-
-
 
                 else:
                     ##patch the image and load each as a different sample
@@ -476,7 +510,6 @@ class SARB_dataloader(Dataset):
                                 img_features = np.expand_dims(img_features_patch,axis=0)
                                 img_features_labels = np.expand_dims(feat_label_arr,axis=0)
 
-
         #expand dimensions for torch indexing
         img_details_arr = np.expand_dims(img_details,axis=1)
         img_arr = np.expand_dims(img,axis=1)
@@ -512,7 +545,6 @@ class SARB_dataloader(Dataset):
 
         if self.annotation_path:
             label_arr = self.label_arr[index]
-
     
         # if self.perform_aug==True:
         #     # aug_seq = Augmentation(self.cfg).augmentation_fn()
