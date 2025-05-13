@@ -156,8 +156,6 @@ def plot_bounding_boxes(name, output_dir, image=None, boxes=[], add_radius=[0,0]
                 width=width + x*2
                 height=height + y*2
 
-                
-
             rect = patches.Rectangle((x_min, y_min), width, height, linewidth=0.5, edgecolor=col, facecolor='none')
             ax.text(x_min+20, y_min+20, str(c), fontsize=5, ha='center', va='center', color='white')
             ax.add_patch(rect)

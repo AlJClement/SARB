@@ -43,7 +43,7 @@ class SkIMG():
             features_dict[name+'_channel'+str(i)+'_'+self.out_sub_dir] = hog_image_rescaled
 
             try:
-                all_hog_feat_arr = np.concat((all_hog_feat_arr,np.expand_dims(hog_image, axis = 0)),axis=0)
+                all_hog_feat_arr = np.concatenate((all_hog_feat_arr,np.expand_dims(hog_image, axis = 0)),axis=0)
             except:
                 all_hog_feat_arr = np.expand_dims(hog_image, axis = 0)
 

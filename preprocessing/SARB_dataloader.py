@@ -29,7 +29,6 @@ class SARB_dataloader(Dataset):
         self.output_dir = self.output_path+'/feats'
         os.makedirs(os.path.join(self.output_dir), exist_ok=True)
 
-
         self.visuals =  Visuals(config)
         self.normalize = config.data.normalize
 
@@ -229,14 +228,14 @@ class SARB_dataloader(Dataset):
 
         x_bb, y_bb, w_bb, h_bb = map(float, annotation)
 
-        #remove
+        #remove after clinicns send PAN samples
         if 'PAN' in name:
             rad=90
             x_bb, y_bb, w_bb, h_bb = map(float, annotation)
-            x1=int(x_bb)
-            y1=int(y_bb)
-            x2=int(w_bb)
-            y2=int(h_bb)
+            x1 = int(x_bb)
+            y1 = int(y_bb)
+            x2 = int(x_bb+w_bb)
+            y2 = int(y_bb+h_bb)
         else:
             # Calculate top-left and bottom-right coordinates
             x1 = int(x_bb - w_bb / 2)
@@ -383,6 +382,7 @@ class SARB_dataloader(Dataset):
                             if self.load_images == True:
                                 arr_patch = self.get_img_crop_from_annotation(mat_arr, bb, crop_name)
                                 if self.normalize_feature_bb==True:
+                                    #normalize the patch 
                                     arr_patch = self.get_normalize(arr_patch)
                             else:
                                 arr_patch = None

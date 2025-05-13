@@ -3,6 +3,15 @@ import os
 import numpy as np
 import math
 import SimpleITK as sitk
+
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+import math
+import umap.umap_ as umap
+from sklearn.preprocessing import scale, normalize
+
 class Visuals():
     def __init__(self, config, sub_dir=''):
         self.output_path = config.output.loc
@@ -14,7 +23,18 @@ class Visuals():
         self.set_max = config.data.set_max
         self.set_max_feat = config.data.set_max_feat
 
+        self.control_str = config.data.control
+        self.disease_str = config.data.disease
+
         self.img_ext = '.svg'
+
+
+        self.output_dir = config.output.loc
+        
+        self.output_sub_dir = config.feature_extraction.method
+        os.makedirs(os.path.join(self.output_dir,self.output_sub_dir), exist_ok=True)
+
+
         return
     
     def plot_features_fromdict(self, name, orig_arr, feature_map, plot_list):
@@ -103,6 +123,7 @@ class Visuals():
         return
     
     def plot_perimg_channels_with_feature_per_channel(self, features_dict, img_arr):
+
         #dictionary of features per image
         #plots each image channel beside the feature
 
@@ -148,4 +169,81 @@ class Visuals():
         plt.savefig(os.path.join(self.output_path,self.sub_dir, list(features_dict.keys())[0].replace('_channel0','')+'.jpg'), dpi=self.dpi)
 
         plt.close()
+        return
+    
+    def plot_feature_analysis(self, img_class_torch, _feat_arr, comparison_type='PCA', scale_data = True):
+        '''this function is used to plot PCA, UMAP or tSNE to comapre features.
+        _feat_arr: feature array with channel, batches, features (type), features OR height_features and width_width [C, b, f, h_features, w_features] OR  [C, b, f, features]
+        This is because features can be calculated per pixel (retaining shape h x w - ex. HOG) or just have the final feature values (ex. SimCLR).
+        img_class_torch: an array of image class in shape [b, total images].
+        '''
+
+        if len(_feat_arr)==4:
+            feat_grid = True
+            num_channels= _feat_arr.shape[2]
+        else:            
+            num_channels= _feat_arr.shape[1]
+
+        for j in range((2)):
+            #looping twice to save pca and normalised pca feature outputs
+            # channels should be in shape 0 of features 
+            fig, axes = plt.subplots(1, num_channels,figsize=(num_channels*4,1*4))
+
+            for c in range(num_channels):
+                if feat_grid == False:
+                    feat_arr = _feat_arr[:,:,c,:]
+                else:                
+                    feat_arr = _feat_arr[:,:,c,:,:]
+
+                classes = np.squeeze(img_class_torch.cpu().detach().numpy(), axis=0)
+
+                flatten_feat_arr =  np.reshape(feat_arr, (feat_arr.shape[0], np.prod(feat_arr.shape[1:])))
+
+                #Scale data
+                if scale_data == True:
+                    # scaler = StandardScaler()
+                    # scaler.fit(flatten_feat_arr)
+                    # flatten_feat_arr=scaler.transform(flatten_feat_arr)    
+                    flatten_feat_arr = normalize(flatten_feat_arr,axis=0)
+
+                if comparison_type == 'PCA':
+                    feats_fit= PCA(n_components=2).fit_transform(flatten_feat_arr)
+                elif comparison_type == 'tSNE':
+                    tsne = TSNE(n_components=2, perplexity=5, random_state=42)
+                    feats_fit = tsne.fit_transform(flatten_feat_arr)
+                elif comparison_type == 'UMAP':
+                    umap_model = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.7, random_state=42)
+                    feats_fit_UMAP = umap_model.fit_transform(flatten_feat_arr)
+
+                axes[c].set_xlabel("Component 1")
+                axes[c].set_ylabel("Component 2")
+                axes[c].grid()
+                axes[c].set_title('Channel '+str(c))
+
+                class1 = feats_fit[classes == 0] 
+                class2 = feats_fit[classes == 1] 
+                scalex=1.0
+                scaley=1.0
+
+                if j == 1:
+                    #standardise
+                    scalex = 1.0/(feats_fit[:,0].max() - feats_fit[:,0].min())
+                    scaley = 1.0/(feats_fit[:,1].max() - feats_fit[:,1].min())
+                    axes[c].set_xlim(-1,1)
+                    axes[c].set_ylim(-1,1)
+                
+                # Scatter plot
+                axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
+                axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='red', label=self.disease_str)
+
+                axes[c].legend([self.control_str, self.disease_str])
+                axes[c].set_aspect('equal')
+            # plt.show()
+            plt.tight_layout()
+            if j == 1:
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_PCA_normalisedComponents'))
+            else:
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_PCA'))
+        plt.close()
+
         return

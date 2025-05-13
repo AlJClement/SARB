@@ -25,7 +25,7 @@ data:
   disease: 'PAN'
 
   #Resample will resample the images from the original size [2048,2048] to the size below. Smaller samplings allow for easier computations but we loose some info in resampling.
-  resample: [512,512] #this is the size the image will be resampled for feature calculations.
+  resample: [256,256] #this is the size the image will be resampled for feature calculations.
 
   #If you want to split the image into a grid, setting this value will crop the image into patches of these sizes during data loading and save them each as a sample.
   patch_size: None #224 #None #256 #8 
@@ -68,14 +68,21 @@ feature_extraction:
   
   #HOG Specific information see documentation.
   orientations: 9
-  pixels_per_cell: 16 #assumes cubic shape
-  cells_per_block: 8 #assumes cubic shape
+  pixels_per_cell: 8 #assumes cubic shape
+  cells_per_block: 4 #assumes cubic shape
   hog_intensity_rescale: 1 #0.1 #for visuals, rescale
 
   plot: True
 
   #comparison of features, depends on feature.
   compare:  ['histogram_per_img','run_PCA']
+  #define axis for histogram visuals
+  histogram_max_y: 25000
+  histogram_max_x: 10
+  histogram_max_y_channels: 1500
+  histogram_max_x_channels: 50
+  bins: 150
+
 
   #histogram per image
   #this can only be done if we have a feature per pixel of the image.
