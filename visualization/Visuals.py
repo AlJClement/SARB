@@ -178,7 +178,7 @@ class Visuals():
         img_class_torch: an array of image class in shape [b, total images].
         '''
 
-        if len(_feat_arr)==4:
+        if len(_feat_arr.shape)==5:
             feat_grid = True
             num_channels= _feat_arr.shape[2]
         else:            
@@ -201,10 +201,10 @@ class Visuals():
 
                 #Scale data
                 if scale_data == True:
-                    # scaler = StandardScaler()
-                    # scaler.fit(flatten_feat_arr)
-                    # flatten_feat_arr=scaler.transform(flatten_feat_arr)    
-                    flatten_feat_arr = normalize(flatten_feat_arr,axis=0)
+                    scaler = StandardScaler()
+                    scaler.fit(flatten_feat_arr)
+                    flatten_feat_arr=scaler.transform(flatten_feat_arr)    
+                    #flatten_feat_arr = normalize(flatten_feat_arr,axis=0)
 
                 if comparison_type == 'PCA':
                     feats_fit= PCA(n_components=2).fit_transform(flatten_feat_arr)
@@ -213,7 +213,7 @@ class Visuals():
                     feats_fit = tsne.fit_transform(flatten_feat_arr)
                 elif comparison_type == 'UMAP':
                     umap_model = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.7, random_state=42)
-                    feats_fit_UMAP = umap_model.fit_transform(flatten_feat_arr)
+                    feats_fit = umap_model.fit_transform(flatten_feat_arr)
 
                 axes[c].set_xlabel("Component 1")
                 axes[c].set_ylabel("Component 2")
@@ -241,9 +241,9 @@ class Visuals():
             # plt.show()
             plt.tight_layout()
             if j == 1:
-                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_PCA_normalisedComponents'))
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_normalisedComponents'))
             else:
-                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_PCA'))
-        plt.close()
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type))
+            plt.close()
 
         return

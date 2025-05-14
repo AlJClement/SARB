@@ -2,10 +2,10 @@
 data:
   #This code is designed to start with mat dir and loop to get all the data, any scans in that folder will be used in the analysis.
   #scans are loaded into a dataloader for organization.
-  mat_dir: '/Users/allison/Desktop/data' #directory of mat files.
+  mat_dir: '/home/allent/Desktop/data' #directory of mat files.
 
   #Annotations are in yolo format and put all in one flat directory. They should have the same name as the mat_dir name with '_boundingbox.txt' at the end of the name.
-  annotation_dir: '/Users/allison/Desktop/data/clinican_annotations' 
+  annotation_dir: '/home/allent/Desktop/data/clinical_annotations' 
   #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape for data loader purposes
   max_annotations: 10
 
@@ -25,7 +25,7 @@ data:
   disease: 'PAN'
 
   #Resample will resample the images from the original size [2048,2048] to the size below. Smaller samplings allow for easier computations but we loose some info in resampling.
-  resample: [256,256] #this is the size the image will be resampled for feature calculations.
+  resample: [2048,2048] #[256,256] #this is the size the image will be resampled for feature calculations.
 
   #If you want to split the image into a grid, setting this value will crop the image into patches of these sizes during data loading and save them each as a sample.
   patch_size: None #224 #None #256 #8 
