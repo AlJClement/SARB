@@ -43,7 +43,7 @@ feature_extraction:
 
   #if you have annotations you can separate them by making the separate classes
   separate_classes: True #false if you want entire image
-  anatomy_class: 0
+  anatomy_class: 1
   feature_classnames: ['Glo', 'Prox', 'Distal']
   #select which class to run 1 is glomerulus and 0 when class is renal tubes for ORIGINAL Semgenations
   #clinicans have defined 0 Glo 1 Prox and 2 Distal which will be used from now on as per below.
