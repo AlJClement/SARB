@@ -191,7 +191,7 @@ class SARB_dataloader(Dataset):
 
             # Append the data to the list
             label_ls.append(parts)
-        label_arr=np.array(label_ls)  # Read the entire file
+            label_arr=np.array(label_ls)  # Read the entire file
         return label_arr
     
     def get_feat_arr(self, channels, pat_id):
@@ -242,6 +242,11 @@ class SARB_dataloader(Dataset):
             y1 = int(y_bb - h_bb / 2)
             x2 = int(x_bb + w_bb / 2)
             y2 = int(y_bb + h_bb / 2)
+
+        y1 = 0 if y1 < 0 else y1
+        y2 = 0 if y2 < 0 else y2
+        x1 = 0 if x1 < 0 else x1
+        x2 = 0 if x2 < 0 else x2
 
         #loop through each channel
         for c in range(img.shape[0]):

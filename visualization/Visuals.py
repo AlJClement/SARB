@@ -171,23 +171,24 @@ class Visuals():
         plt.close()
         return
     
-    def plot_feature_analysis(self, img_class_torch, _feat_arr, comparison_type='PCA', scale_data = True):
+    def plot_feature_analysis(self, img_class_torch, _feat_arr, comparison_type, scale_data = True):
         '''this function is used to plot PCA, UMAP or tSNE to comapre features.
         _feat_arr: feature array with channel, batches, features (type), features OR height_features and width_width [C, b, f, h_features, w_features] OR  [C, b, f, features]
         This is because features can be calculated per pixel (retaining shape h x w - ex. HOG) or just have the final feature values (ex. SimCLR).
         img_class_torch: an array of image class in shape [b, total images].
         '''
+        num_channels= _feat_arr.shape[2]
 
         if len(_feat_arr.shape)==5:
             feat_grid = True
-            num_channels= _feat_arr.shape[2]
-        else:            
-            num_channels= _feat_arr.shape[1]
+        else:        
+            feat_grid = False
 
         for j in range((2)):
             #looping twice to save pca and normalised pca feature outputs
             # channels should be in shape 0 of features 
             fig, axes = plt.subplots(1, num_channels,figsize=(num_channels*4,1*4))
+            plt.tight_layout()
 
             for c in range(num_channels):
                 if feat_grid == False:
@@ -209,10 +210,10 @@ class Visuals():
                 if comparison_type == 'PCA':
                     feats_fit= PCA(n_components=2).fit_transform(flatten_feat_arr)
                 elif comparison_type == 'tSNE':
-                    tsne = TSNE(n_components=2, perplexity=5, random_state=42)
+                    tsne = TSNE(n_components=2, perplexity=4, random_state=42)
                     feats_fit = tsne.fit_transform(flatten_feat_arr)
                 elif comparison_type == 'UMAP':
-                    umap_model = umap.UMAP(n_components=2, n_neighbors=10, min_dist=0.7, random_state=42)
+                    umap_model = umap.UMAP(n_components=2, n_neighbors=4, min_dist=0.7, random_state=42)
                     feats_fit = umap_model.fit_transform(flatten_feat_arr)
 
                 axes[c].set_xlabel("Component 1")
@@ -232,14 +233,16 @@ class Visuals():
                     axes[c].set_xlim(-1,1)
                     axes[c].set_ylim(-1,1)
                 
+                axes[c].set_aspect('equal')
+                
                 # Scatter plot
                 axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
                 axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='red', label=self.disease_str)
 
                 axes[c].legend([self.control_str, self.disease_str])
-                axes[c].set_aspect('equal')
-            # plt.show()
+                # plt.show()
             plt.tight_layout()
+
             if j == 1:
                 plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_normalisedComponents'))
             else:

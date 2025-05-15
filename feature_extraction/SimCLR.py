@@ -11,7 +11,6 @@ from torchvision.transforms.functional import to_pil_image
 # # Load EfficientNet as the backbone
 # model = EfficientNet.from_pretrained('efficientnet-b0')  # You can choose other variants (b1, b2, b3, etc.)
 
-
 class SimCLR(torch.nn.Module):
     def __init__(self, backbone):
         super().__init__()
@@ -27,8 +26,8 @@ class SimCLR(torch.nn.Module):
     def feat_extractor(self,img_tensor):
             # Load Pretrained Backbone
             # Load a pre-trained ResNet50 model (or any other backbone used in SimCLR)
-        #model = models.resnet50(pretrained=True)
-        model = models.vgg19(pretrained=True)
+        model = models.resnet50(pretrained=True)
+        #model = models.vgg19(pretrained=True)
         #model = models.
         # Remove the final fully connected layer to extract features
         # Extract features from the penultimate layer (just before classification)
@@ -49,10 +48,16 @@ class SimCLR(torch.nn.Module):
     
     def _get_feature_arr(self, mat_arr, pat_id):
         features_per_channel=None
-        ## max 3 channels so loop through each channel
-        for i in range((mat_arr.shape[0])):
-            _mat_arr=np.expand_dims(mat_arr[i,:,:],axis=0)
 
+        ## max 3 channels so loop through each channel
+        # last loop is done to get a final 6th combined channel of 123 scattering
+        for i in range((mat_arr.shape[0])+1):
+
+            if i == 5:
+                _mat_arr = mat_arr[1:4,:,:]
+            else:
+                _mat_arr=np.expand_dims(mat_arr[i,:,:],axis=0)
+            
             image_mat_arr = torch.from_numpy(_mat_arr)#.permute(1,2,0)
             # img_PIL = Image.fromarray(mat_arr)
             img_pil = to_pil_image(image_mat_arr)
@@ -67,9 +72,10 @@ class SimCLR(torch.nn.Module):
                 np_feat = np.expand_dims(feature_per_channel.numpy().flatten(), axis=0)
 
             try:
-                features_per_channel = np.concat([features_per_channel,np_feat],axis=0)
+                features_per_channel = np.concatenate([features_per_channel,np_feat],axis=0)
             except:
                 features_per_channel=np_feat
+
         feat_names_arr=np.array(["simclr features"])
         feat_names_arr=np.expand_dims(np.array(feat_names_arr), axis =0)
 

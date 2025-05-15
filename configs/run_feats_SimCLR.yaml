@@ -36,10 +36,16 @@ feature_extraction:
   load_existing: False ## doesnt work because simclear doesnt get per pixel images. you must DO THIS FOR THE EACH SAMPLE SEPERATELY
   load_images: True #saves alot of time if you dont need these
   separate_classes: True 
-  anatomy_class: 0
+  anatomy_class: 1
   feature_classnames: ['Glo', 'Prox', 'Distal']
 
   method: SimCLR
+  ### NOTE: in SimCLR.py you can change the encoder type and load different pretrained models. This is not coded in the configuration file yet.
+  ## current default is resnet50.
+  #model = models.resnet50(pretrained=True)
+  #example other model is vgg
+  #model = models.vgg19(pretrained=True)
+
   backbone: resnet50
   plot: True
   compare: ['run_PCA','run_tSNE','run_UMAP']
@@ -51,21 +57,3 @@ output:
   loc: ./output
   visuals:
     - plot_features
-
-
-# feature_extraction:
-#   method: Pyradiomics
-#   features:
-#     - ALL
-#   voxel_based: True
-#   x_bound: 200
-#   y_bound: 200
-#   plot: True
-#   compare: ['run_PCA', 'histogram_per_img']
-# feature_extraction:
-#   method: Pyfeats
-#   features:
-#     - ALL
-#   plot: True
-#   compare: ['plot_stat_difference','run_PCA']
-  
