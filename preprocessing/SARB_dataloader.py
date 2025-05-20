@@ -24,6 +24,7 @@ class SARB_dataloader(Dataset):
         if 'orig_cache' in config.data.visuals:
             self.plot = True
             self.save_channel0 = False
+            self.save_channel_rgb = True
         self.output_path = config.output.loc
         os.makedirs(self.output_path, exist_ok=True)
         self.output_dir = self.output_path+'/feats'
@@ -279,6 +280,7 @@ class SARB_dataloader(Dataset):
                                         facecolor='none')
                 ax.add_patch(rect)
                 plt.savefig('./output/cache/'+name)
+            plt.close()
 
 
         return all_cropped
@@ -341,6 +343,9 @@ class SARB_dataloader(Dataset):
 
                     if self.save_channel0 ==True:
                         self.visuals.save_channel0(mat_arr, pat_id, channel = 0)
+
+                    if self.save_channel_rgb==True:
+                        self.visuals.save_channel_rgb(mat_arr, pat_id)
 
                     if self.orig_size != None:
                         #note image is resampled to the square size first of 2048 by 2048 as done for annotations

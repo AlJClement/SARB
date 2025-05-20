@@ -83,6 +83,40 @@ class Visuals():
 
         plt.close()
         return
+    
+    def save_channel_rgb(self, arr,name, folder_name = 'cache'):
+        '''takes in one mat array dictionary and plots each svg just the channel given'''
+        os.makedirs(os.path.join(self.output_path, folder_name), exist_ok=True)
+        # Plot the original image
+        plt.close()
+        s=500
+        r=arr[:,:,1]*s
+        g=arr[:,:,2]*s
+        b=arr[:,:,3]*s
+        __color = 'magma_r'
+
+        # r= (r - r.min()) / (r.max() - r.min())
+        # g= (g - g.min()) / (g.max() - g.min())
+        # b= (b - b.min()) / (b.max() - b.min())
+        # plt.imshow(r,cmap=__color)
+        # plt.savefig(os.path.join(self.output_path,folder_name,name+'_channel_r'+'.png'),dpi=self.dpi)
+        # plt.imshow(g,cmap=__color)
+        # plt.savefig(os.path.join(self.output_path,folder_name,name+'_channel_g'+'.png'),dpi=self.dpi)
+        # plt.imshow(b,cmap=__color)
+        # plt.savefig(os.path.join(self.output_path,folder_name,name+'_channel_b'+'.png'),dpi=self.dpi)
+
+        # plt.close()
+
+        xx= r+b+g
+        plt.imshow(xx, cmap=__color, vmin=0, vmax=1)
+
+        # plt.colorbar() 
+        plt.axis('off')
+
+        plt.savefig(os.path.join(self.output_path,folder_name,name+'_channel_rgb'+'.png'),dpi=self.dpi)
+
+        plt.close()
+        return
         
     def plot_cache(self, mat_dict, folder_name = 'cache'):
         '''takes in dictionary of mat arrays, indexed by the scan name'''
