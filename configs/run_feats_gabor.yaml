@@ -48,11 +48,22 @@ feature_extraction:
   feature_classnames: ['Inner','Outer','Glo']
 
   #choose the method, see notes for details about the end of the document about potential feature extraction methods and how they differ in inputs required.
-  method: Pyfeats
+  method: SkIMG
   features:
-    - ALL
+    - GABOR
+  
+  gabor_frequency: 0.2
+
   plot: True
-  compare: ['plot_stat_difference','run_PCA']
+
+  #comparison of features, depends on feature.
+  compare:  ['histogram_per_img','run_PCA']
+  #define axis for histogram visuals
+  histogram_max_y: 2000
+  histogram_max_x: 4
+  histogram_max_y_channels: 400
+  histogram_max_x_channels: 10
+  bins: 150
 
 output:
   loc: ./output

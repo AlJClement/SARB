@@ -18,6 +18,7 @@ class SARB_dataloader(Dataset):
         self.img_size = config.data.resample
         self.normalize_feature_bb=True
         self.feat_classes = config.feature_extraction.feature_classnames
+        self.resample_roi = config.data.resample_roi
 
         self.mat_dir = config.data.mat_dir
         self.array_path = array_path
@@ -39,7 +40,7 @@ class SARB_dataloader(Dataset):
         self.orig_size = [2048,2048]
         #specify the number of samples to get (ex renal tubes have like 19 segmentations, so select first 4 for space)
         self.num_annotations_to_compare = 5
-
+        
         try:
             self.resample_size = config.data.resample
         except:
@@ -228,10 +229,9 @@ class SARB_dataloader(Dataset):
         '''
 
         x_bb, y_bb, w_bb, h_bb = map(float, annotation)
-
-        #remove after clinicns send PAN samples
+        
+        #remove after clinicns send PAN samples ** RIGHT now all samples allie has done are this first first format, clinican did with label software which has different format.
         if 'PAN' in name:
-            rad=90
             x_bb, y_bb, w_bb, h_bb = map(float, annotation)
             x1 = int(x_bb)
             y1 = int(y_bb)
@@ -243,6 +243,7 @@ class SARB_dataloader(Dataset):
             y1 = int(y_bb - h_bb / 2)
             x2 = int(x_bb + w_bb / 2)
             y2 = int(y_bb + h_bb / 2)
+            
 
         y1 = 0 if y1 < 0 else y1
         y2 = 0 if y2 < 0 else y2
@@ -254,13 +255,43 @@ class SARB_dataloader(Dataset):
 
             img_channel = img[c,:,:]
             #resize image to new size
-            img_channel = resize(img_channel, self.resample_size)
+            if self.resample_size=='None':
+                pass
+            else:
+                img_channel = resize(img_channel, self.resample_size)
+            
+
+            if self.resample_size=='None':
+                ## resample to image shape scale
+                x_bb, y_bb, w_bb, h_bb = map(float, annotation)
+
+                x1 = int(x_bb*img_channel.shape[0])
+                y1 = int(y_bb*img_channel.shape[1])
+                x2 = int(round((x_bb+w_bb)*img_channel.shape[0],1))
+                y2 = int(round((y_bb+h_bb)*img_channel.shape[1],1))
 
             fig, ax = plt.subplots()
 
+            if (y2-y1)!=(x2-x1):
+                #check lower and crop to lower, or always crop to even number
+                if y2-y1 > x2-x1:
+                    y2=y2-1
+                else:
+                    x2=x2-1
+
+            if self.resample_size == 'None':
+                if (x2-x1)>40: ## this is 40 as specified in the annotatons
+                    x2=x1+40
+                    y2=y1+40
+
             # Crop the object
             _tmp_img = img_channel[y1:y2, x1:x2]
-            _tmp_img = resize(_tmp_img, self.resample_size)
+            
+            if self.resample_roi=='None':
+                pass
+            else:
+                _tmp_img = resize(_tmp_img, [self.resample_roi,self.resample_roi])
+            
             _cropped = np.expand_dims(_tmp_img,axis=0)
 
             if 'all_cropped' in locals():
@@ -273,8 +304,8 @@ class SARB_dataloader(Dataset):
                 ax.imshow(img_channel,cmap='grey')
                 # Create a Rectangle patch
                 rect = patches.Rectangle((x1, y1),
-                                        w_bb,
-                                        h_bb,
+                                        x2-x1,
+                                        y2-y1,
                                         linewidth=2,
                                         edgecolor='red',
                                         facecolor='none')
@@ -387,7 +418,10 @@ class SARB_dataloader(Dataset):
                             #bb is short for bounding box
                             bb = filtered_array[ann][1:]
                             #assumes image is cubic, resize 
-                            bb=bb*self.img_size[0]
+                            if self.img_size == 'None':
+                                pass
+                            else:
+                                bb=bb*self.img_size[0]
 
                             if self.load_images == True:
                                 arr_patch = self.get_img_crop_from_annotation(mat_arr, bb, crop_name)

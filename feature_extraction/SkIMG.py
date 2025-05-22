@@ -6,6 +6,7 @@ from skimage import exposure
 from skimage import io
 import os
 from visualization import Visuals
+from skimage.filters import gabor
 
 class SkIMG():
     def __init__(self, config):
@@ -30,6 +31,9 @@ class SkIMG():
         if 'CANNY' in self.feat_list:
             self.sigma = config.feature_extraction.sigma
 
+        if 'GABOR' in self.feat_list:
+            self.gabor_frequency = config.feature_extraction.gabor_frequency
+
         pass
 
     def HOG(self, name, img_arr):
@@ -52,6 +56,26 @@ class SkIMG():
             Visuals(self.config, self.out_sub_dir).plot_perimg_channels_with_feature_per_channel(features_dict, img_arr)
 
         return all_hog_feat_arr
+    
+    def GABOR(self, name, img_arr):
+        features_dict = {}
+        for i in range(img_arr.shape[0]):
+            # Extract HOG features and visualize them
+            filtered_real, filtered_image = gabor(img_arr[i], frequency=self.gabor_frequency)
+
+            # Rescale histogram for better displayd
+            features_dict[name+'_channel'+str(i)+'_'+self.out_sub_dir] = filtered_image
+
+            try:
+                all_gabor_feat_arr = np.concatenate((all_gabor_feat_arr,np.expand_dims(filtered_image, axis = 0)),axis=0)
+            except:
+                all_gabor_feat_arr = np.expand_dims(filtered_image, axis = 0)
+
+
+        if self.plot == True:
+            Visuals(self.config, self.out_sub_dir).plot_perimg_channels_with_feature_per_channel(features_dict, img_arr)
+
+        return all_gabor_feat_arr
     
     def SOBEL(self, name, img_arr):
         features_dict = {}
