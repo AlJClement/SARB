@@ -4,7 +4,7 @@ Allison Clement
 Contact: allison.clement@ox.ac.uk
 
 ## Project Discription
-The Computational Imaging and Vision Lab has developed a technique for the sepa- ration of scattering light in Transmitted Light Microscopy (TLM). This method is the first to create spatial maps of the scattering property in TLM and has been used to accurately capture tissue characteristics [\url{}].
+The Computational Imaging and Vision Lab has developed a technique for the sepa- ration of scattering light in Transmitted Light Microscopy (TLM). This method is the first to create spatial maps of the scattering property in TLM and has been used to accurately capture tissue characteristics [here]{https://kyushu-u.elsevierpure.com/ja/publications/separation-of-transmitted-light-and-scattering-components-in-tran}.
 
 Biological tissues are very complex. Current TLM is limited to one output image which includes all light outputs. Thus in some cases, tissue characteristics may not be fully captured. Capturing separate scattering properties will generate more detailed information about the structure of biological tissues. This may be useful for visualizing differences in characteristics between disease and healthy tissues.
 Using the Scattering Angle Resolved Bioimaging (SARB) method, Mihoko collected control and disease samples. For each sample, five imaging channels were recorded. One channel with the TLM image, three channels with different scattering angles (θ1,θ2,θ3, increasing respectively), and a fifth channel containing multiple scattered light.

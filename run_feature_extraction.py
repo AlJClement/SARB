@@ -34,7 +34,7 @@ def run_feature_extraction(config):
     # feat_dict = feat_extractor(config)._get_feature_dict(dict_arr)
 
     #compare healthy and unhealthy features from dictconda 
-    Compare(config, data)._report()
+    Compare(config, data, log)._report()
     time_compare = datetime.datetime.now()
     total_time = time_compare-t_loader
     log.info('END COMPARE TIME:'+time_compare.strftime("%m_%d_%Y_%H%M%S"))

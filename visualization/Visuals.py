@@ -13,7 +13,7 @@ import umap.umap_ as umap
 from sklearn.preprocessing import scale, normalize
 
 class Visuals():
-    def __init__(self, config, sub_dir=''):
+    def __init__(self, config, log, sub_dir=''):
         self.output_path = config.output.loc
         os.makedirs(self.output_path, exist_ok=True)
         self.img_scale = config.data.img_scale
@@ -28,12 +28,16 @@ class Visuals():
 
         self.img_ext = '.svg'
 
-
+        try:
+            self.log = log
+        except:
+            ValueError('Check if log is not working')
         self.output_dir = config.output.loc
         
         self.output_sub_dir = config.feature_extraction.method
         os.makedirs(os.path.join(self.output_dir,self.output_sub_dir), exist_ok=True)
 
+        self.dimension_reduction_components = config.feature_extraction.dimension_reduction_components
 
         return
     
@@ -242,12 +246,24 @@ class Visuals():
                     #flatten_feat_arr = normalize(flatten_feat_arr,axis=0)
 
                 if comparison_type == 'PCA':
-                    feats_fit= PCA(n_components=2).fit_transform(flatten_feat_arr)
+                    if self.dimension_reduction_components=='ALL':
+                        #do note set components default is all features are collected
+                        feats_fit= PCA().fit_transform(flatten_feat_arr)
+                    elif self.dimension_reduction_components>2:
+                        feats_fit= PCA(n_components=self.dimension_reduction_components).fit_transform(flatten_feat_arr)
+                    else:
+                        # if you only did two then you dont need to select two for plotting
+                        feats_fit= PCA(n_components=self.dimension_reduction_components).fit_transform(flatten_feat_arr)
+
+                    ### printing to save
+                    self.log.info('PCA Explained Variance Ratios: '+ feats_fit.explained_variance_ratio_)
+                    self.log.info('PCA Singular Values: '+ feats_fit.singular_values_)
+
                 elif comparison_type == 'tSNE':
-                    tsne = TSNE(n_components=2, perplexity=4, random_state=42)
+                    tsne = TSNE(n_components=self.dimension_reduction_components, perplexity=4, random_state=42)
                     feats_fit = tsne.fit_transform(flatten_feat_arr)
                 elif comparison_type == 'UMAP':
-                    umap_model = umap.UMAP(n_components=2, n_neighbors=4, min_dist=0.7, random_state=42)
+                    umap_model = umap.UMAP(n_components=self.dimension_reduction_components, n_neighbors=4, min_dist=0.7, random_state=42)
                     feats_fit = umap_model.fit_transform(flatten_feat_arr)
 
                 axes[c].set_xlabel("Component 1")

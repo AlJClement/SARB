@@ -65,7 +65,7 @@ class Pyfeats():
             features_per_channel = np.expand_dims(feature_arr, axis=0)
 
             try:
-                feat_arr_allchannels = np.concat((feat_arr_allchannels,features_per_channel), axis=0)
+                feat_arr_allchannels = np.concatenate((feat_arr_allchannels,features_per_channel), axis=0)
             except:
                 feat_arr_allchannels = features_per_channel
 

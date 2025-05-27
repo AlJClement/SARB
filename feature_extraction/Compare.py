@@ -19,7 +19,7 @@ from visualization import Histograms
 from visualization import Visuals
 
 class Compare():
-    def __init__(self, config, dataloader):
+    def __init__(self, config, dataloader, log):
         self.config = config
 
         self.feature= config.feature_extraction.method
@@ -43,10 +43,10 @@ class Compare():
             self.exponential_comparison = config.feature_extraction.compare_exponential
         except:
             self.exponential_comparison = False
-
         
         self.img_details_arr, self.img_torch, self.img_class_torch, self.img_features_torch, self.img_features_labels_arr = dataloader.dataset.img_details, dataloader.dataset.img_arr, dataloader.dataset.img_class, dataloader.dataset.img_features, dataloader.dataset.img_feat_labels
 
+        self.log = log
         pass
 
     def normalize_array(self, arr):
@@ -62,7 +62,7 @@ class Compare():
         #shape of feat array is pat, channels, features
         feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
         
-        if len(feat_arr.shape) == 4: #shape of feat array is pat, channels, features (image) - if featues is image, stack them all into an arary 
+        if len(feat_arr.shape) == 5: #shape of feat array is pat, channels, features (image) - if featues is image, stack them all into an arary 
             feat_arr = feat_arr.reshape(feat_arr.shape[0], feat_arr.shape[1], feat_arr.shape[2]*feat_arr.shape[3])
 
         if normalize == True:
@@ -78,65 +78,71 @@ class Compare():
         disease_feats, disease_std = np.mean(feat_arr[index_disease],axis=0), np.std(feat_arr[index_disease],axis=0)
 
         ##for each channel calculate the feature difference
-        channels = feat_arr.shape[1]
-        
+        channels = feat_arr.shape[2]
+
         for c in range(channels):
-            # Create the bar plot
+            # Create the bar plot for each channel
+
             fig, ax = plt.subplots()#constrained_layout=True)
-            x = np.arange(len(control_feats[c]))
-            width = 0.3
-            bars1 = ax.bar(x - width/2, control_feats[c], width, yerr=control_std[c], capsize=5, label='control', color='blue', alpha=0.7)
-            bars2 = ax.bar(x + width/2, disease_feats[c], width, yerr=disease_std[c], capsize=5, label='disease', color='red', alpha=0.7)
+            x = 32
+            width = 1/x
+    
+            bars1 = ax.bar(x - width/2, control_feats[0,c], width, capsize=5, label='control', color='blue', alpha=0.7)
+            bars2 = ax.bar(x + width/2, disease_feats[0,c], width, capsize=5, label='disease', color='red', alpha=0.7)
+
 
             for f in range(len(feature_labels)):
-                vals_disease=feat_arr[index_disease][:,c,f]
-                vals_control=feat_arr[index_control][:,c,f]
+                vals_disease=feat_arr[index_disease][:,0,c,f]
+                vals_control=feat_arr[index_control][:,0,c,f]
                 t_stat, p_value = stats.ttest_ind(vals_disease, vals_control)
 
                 man_stat, p_man = mannwhitneyu(vals_disease, vals_control, alternative='two-sided')
 
-                print(p_value)
                 if p_value < alpha:
-                    ax.text(f, y=np.max(np.concat((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
+                    ax.text(f, y=np.max(np.concatenate((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
+                    print(p_value)
                 
                 if p_man< alpha:
-                    ax.text(f, y=np.max(np.concat((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
+                    ax.text(f, y=np.max(np.concatenate((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
+                
 
             # Add labels and title
             ax.set_ylabel('Feature Values')
-            plt.xticks(rotation=45)
-            ax.set_xticks(x)
+            plt.xticks(rotation=90)
+            ax.set_xticks(range(x))
             ax.set_xticklabels(feature_labels.tolist())  # Set custom x-axis labels
-
-            ax.set_ylim([0, 1])
+            ax.set_ylim([0, .1])
+            ax.set_xlim([0, 32])
 
             plt.legend()
             # plt.show()
             plt.title(self.plt_name+'_'+str(c))
-            # plt.tight_layout()
+            plt.tight_layout()
             plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.comparison_type[0]+'_channel'+str(c)+'_bar_graph'))
             plt.close()
 
-        ### plot each feature seperately
         channels = feat_arr.shape[2]
+        ### plot each feature seperately
         for c in range(channels):
             # Create the bar plot
+            _vals_disease=feat_arr[index_disease][:,0,c]
+            _vals_control=feat_arr[index_control][:,0,c]
+
             for f in range(len(feature_labels)):
                 fig, ax = plt.subplots()#constrained_layout=True)
-                vals_disease=feat_arr[index_disease][:,c,f]
-                vals_control=feat_arr[index_control][:,c,f]
+                vals_disease=_vals_disease[:,f]
+                vals_control=_vals_control[:,f]
                 t_stat, p_value = stats.ttest_ind(vals_disease, vals_control)
                 man_stat, p_man = mannwhitneyu(vals_disease, vals_control, alternative='two-sided')
 
                 print(p_value)
                 if p_value < alpha:
-                    ax.text(f, y=np.max(np.concat((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
+                    ax.text(f, y=np.max(np.concatenate((vals_control,vals_disease))), s="*", ha='center', va='center', fontsize=15)
                 
 
                 width = 0.3
-                bars1 = ax.bar(1 - width/2, control_feats[c][f], width, yerr=control_std[c][f], capsize=5, label='control', color='blue', alpha=0.7)
-                bars2 = ax.bar(1 + width/2, disease_feats[c][f], width, yerr=disease_std[c][f], capsize=5, label='disease', color='blue', alpha=0.7)
-
+                bars1 = ax.bar(1 - width/2, vals_control.mean(), width, yerr=vals_control.std(), capsize=5, label='control', color='blue', alpha=0.7)
+                bars2 = ax.bar(1 + width/2, vals_disease.mean(), width, yerr=vals_disease.std(), capsize=5, label='disease', color='red', alpha=0.7)
 
                 # Add labels and title
                 ax.set_ylabel('Feature Values')
@@ -150,7 +156,6 @@ class Compare():
                 plt.text(0.7,0.1,text, ha='center', va='center', transform=ax.transAxes)
                 
                 plt.legend()
-                plt.show()
                 plt.title(self.plt_name+'_'+str(c))
                 # plt.tight_layout()
                 plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,self.comparison_type[0]+'_channel'+str(c)+'_'+str(feature_labels[f])))
@@ -197,7 +202,7 @@ class Compare():
             _feat_arr = np.squeeze(self.img_features_torch, axis=1)
 
         comparison_type='PCA'
-        Visuals(self.config).plot_feature_analysis(self.img_class_torch, _feat_arr, comparison_type,scale_data)
+        Visuals(self.config, self.log).plot_feature_analysis(self.img_class_torch, _feat_arr, comparison_type,scale_data)
 
         return
     
@@ -207,7 +212,7 @@ class Compare():
         #if this shape is 3 then structure is [sample, channels, img_features], if its 4 then the features are per pixel and the output features are images
 
         comparison_type='tSNE'
-        Visuals(self.config).plot_feature_analysis(self.img_class_torch, _feat_arr, comparison_type,scale_data)
+        Visuals(self.config,self.log).plot_feature_analysis(self.img_class_torch, _feat_arr, comparison_type,scale_data)
 
         return
     
@@ -216,7 +221,7 @@ class Compare():
         _feat_arr = np.squeeze(self.img_features_torch.cpu().detach().numpy(), axis=1)
 
         comparison_type='UMAP'
-        Visuals(self.config).plot_feature_analysis(self.img_class_torch, _feat_arr, comparison_type,scale_data)
+        Visuals(self.config,self.log).plot_feature_analysis(self.img_class_torch, _feat_arr, comparison_type,scale_data)
 
         return
 

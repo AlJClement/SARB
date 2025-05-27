@@ -31,7 +31,7 @@ class SARB_dataloader(Dataset):
         self.output_dir = self.output_path+'/feats'
         os.makedirs(os.path.join(self.output_dir), exist_ok=True)
 
-        self.visuals =  Visuals(config)
+        self.visuals = Visuals(config, log = None)
         self.normalize = config.data.normalize
 
         self.control_str = config.data.control
@@ -183,7 +183,7 @@ class SARB_dataloader(Dataset):
                 lines = file.readlines()
                 # Initialize an empty list to store the data
         except:
-            raise ValueError('ERROR: You must have a matching txt annotation if you are loading annotations for all files in the data folder.')
+            raise ValueError('ERROR: You must have a matching txt annotation if you are loading annotations for all files in the data folder. OR CHECK FOLDER NAME')
         label_ls = []
 
         for line in lines:
