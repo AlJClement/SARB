@@ -248,16 +248,40 @@ class Visuals():
                 if comparison_type == 'PCA':
                     if self.dimension_reduction_components=='ALL':
                         #do note set components default is all features are collected
-                        feats_fit= PCA().fit_transform(flatten_feat_arr)
-                    elif self.dimension_reduction_components>2:
-                        feats_fit= PCA(n_components=self.dimension_reduction_components).fit_transform(flatten_feat_arr)
+                        pca = PCA()
+                        pca.fit(flatten_feat_arr)
                     else:
                         # if you only did two then you dont need to select two for plotting
-                        feats_fit= PCA(n_components=self.dimension_reduction_components).fit_transform(flatten_feat_arr)
+                        pca = PCA(n_components=self.dimension_reduction_components)
+                        pca.fit(flatten_feat_arr)
+
+                    print(pca.explained_variance_ratio_)
+                    print(pca.singular_values_)
+
+                    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))  # 1 row, 2 columns
+                    # First plot
+                    ax1.plot(range(len(pca.explained_variance_ratio_)), pca.explained_variance_ratio_, color='blue')
+                    ax1.set_title('explained variance ratio')
+                    ax1.set_xlabel('componenet')
+                    ax1.set_ylabel('ratio value')
+
+                    # Second plot
+                    ax2.plot(range(len(pca.singular_values_)), pca.singular_values_, color='green')
+                    ax2.set_title('Singular Values')
+                    ax2.set_xlabel('componenet')
+                    ax2.set_ylabel('value')
 
                     ### printing to save
                     self.log.info('PCA Explained Variance Ratios: '+ feats_fit.explained_variance_ratio_)
                     self.log.info('PCA Singular Values: '+ feats_fit.singular_values_)
+
+                    plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_componentPLOTS'))
+
+                    #this now takes the values and transforms on the two principal axis
+                    feats_fit = pca.transform(flatten_feat_arr) 
+                    #transform and get just the first two componenets
+                    feats_fit=feats_fit[:, :2] 
+
 
                 elif comparison_type == 'tSNE':
                     tsne = TSNE(n_components=self.dimension_reduction_components, perplexity=4, random_state=42)
