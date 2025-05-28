@@ -198,7 +198,7 @@ class SARB_dataloader(Dataset):
     
     def get_feat_arr(self, channels, pat_id):
         if self.feat_extractor==False:
-            print('FEATURE EXTRACTOR IS FALSE')
+            raise ValueError('FEATURE EXTRACTOR IS FALSE - NO FEATURES BEING EXTRACTED ** This is for learning methods when you only want to load data')
             feats_arr, feat_label_arr = None, None
         else:
             if self.load_existing == False:#if this is true you dont need the images to be loaded ** avoid time consuming step.
@@ -224,31 +224,12 @@ class SARB_dataloader(Dataset):
 
         img: image or mat_arr, shape channel, height, width (c, h, w) 
         anotation: the annotation as a bounding box, array of shape (x,y,w,h) 
-        
+        *** note some annotations from clinicians are different so had to adapt for now until we get all from clinicians.
+
         all_cropped: output shape (channels, h, w) 
         '''
 
         x_bb, y_bb, w_bb, h_bb = map(float, annotation)
-        
-        #remove after clinicns send PAN samples ** RIGHT now all samples allie has done are this first first format, clinican did with label software which has different format.
-        if 'PAN' in name:
-            x_bb, y_bb, w_bb, h_bb = map(float, annotation)
-            x1 = int(x_bb)
-            y1 = int(y_bb)
-            x2 = int(x_bb+w_bb)
-            y2 = int(y_bb+h_bb)
-        else:
-            # Calculate top-left and bottom-right coordinates
-            x1 = int(x_bb - w_bb / 2)
-            y1 = int(y_bb - h_bb / 2)
-            x2 = int(x_bb + w_bb / 2)
-            y2 = int(y_bb + h_bb / 2)
-            
-
-        y1 = 0 if y1 < 0 else y1
-        y2 = 0 if y2 < 0 else y2
-        x1 = 0 if x1 < 0 else x1
-        x2 = 0 if x2 < 0 else x2
 
         #loop through each channel
         for c in range(img.shape[0]):
@@ -261,28 +242,62 @@ class SARB_dataloader(Dataset):
                 img_channel = resize(img_channel, self.resample_size)
             
 
-            if self.resample_size=='None':
-                ## resample to image shape scale
-                x_bb, y_bb, w_bb, h_bb = map(float, annotation)
-
-                x1 = int(x_bb*img_channel.shape[0])
-                y1 = int(y_bb*img_channel.shape[1])
-                x2 = int(round((x_bb+w_bb)*img_channel.shape[0],1))
-                y2 = int(round((y_bb+h_bb)*img_channel.shape[1],1))
-
-            fig, ax = plt.subplots()
-
-            if (y2-y1)!=(x2-x1):
-                #check lower and crop to lower, or always crop to even number
-                if y2-y1 > x2-x1:
-                    y2=y2-1
+            if 'clin' in self.annotation_path:            
+                if self.resample_roi=='None':
+                    raise ValueError('you must define a resample size as the sizes between each ROI by clinicians is not the same')
                 else:
-                    x2=x2-1
+                    ## resample to image shape scale
+                    x_bb, y_bb, w_bb, h_bb = map(float, annotation)
 
-            if self.resample_size == 'None':
-                if (x2-x1)>40: ## this is 40 as specified in the annotatons
-                    x2=x1+40
-                    y2=y1+40
+                    if 'PAN' in name:
+                        # different inputs from makesense.ai then clinicians used 
+                        ## NOTE: change this when you get new annotations delete lines 252-258
+                        x_bb, y_bb, w_bb, h_bb = map(float, annotation)
+                        x1 = int(x_bb*img_channel.shape[0])
+                        y1 = int(y_bb*img_channel.shape[1])
+                        x2 = int((x_bb+w_bb)*img_channel.shape[0])
+                        y2 = int((y_bb+h_bb)*img_channel.shape[1])
+                    else:
+                        # Calculate top-left and bottom-right coordinates
+                        x1 = int((x_bb - w_bb / 2)*img_channel.shape[0])
+                        y1 = int((y_bb - h_bb / 2)*img_channel.shape[1])
+                        x2 = int((x_bb + w_bb / 2)*img_channel.shape[0])
+                        y2 = int((y_bb + h_bb / 2)*img_channel.shape[1])
+                        
+            else:
+                #remove after clinicns send PAN samples ** RIGHT now all samples allie has done are this first first format, clinican did with label software which has different format.
+                if 'PAN' in name:
+                    x_bb, y_bb, w_bb, h_bb = map(float, annotation)
+                    x1 = int(x_bb)
+                    y1 = int(y_bb)
+                    x2 = int(x_bb+w_bb)
+                    y2 = int(y_bb+h_bb)
+                else:
+                    # Calculate top-left and bottom-right coordinates
+                    x1 = int(x_bb - w_bb / 2)
+                    y1 = int(y_bb - h_bb / 2)
+                    x2 = int(x_bb + w_bb / 2)
+                    y2 = int(y_bb + h_bb / 2)
+                    
+
+                    y1 = 0 if y1 < 0 else y1
+                    y2 = 0 if y2 < 0 else y2
+                    x1 = 0 if x1 < 0 else x1
+                    x2 = 0 if x2 < 0 else x2
+
+                if (y2-y1)!=(x2-x1):
+                    #check lower and crop to lower, or always crop to even number
+                    if y2-y1 > x2-x1:
+                        y2=y2-1
+                    else:
+                        x2=x2-1
+
+                if self.resample_size == 'None':
+                    if (x2-x1)>40: ## this is 40 as specified in the annotatons
+                        x2=x1+40
+                        y2=y1+40
+            
+            fig, ax = plt.subplots()
 
             # Crop the object
             _tmp_img = img_channel[y1:y2, x1:x2]
@@ -299,19 +314,19 @@ class SARB_dataloader(Dataset):
             else:
                 all_cropped =_cropped
 
-            
-            if plot_bb == True:
-                ax.imshow(img_channel,cmap='grey')
-                # Create a Rectangle patch
-                rect = patches.Rectangle((x1, y1),
-                                        x2-x1,
-                                        y2-y1,
-                                        linewidth=2,
-                                        edgecolor='red',
-                                        facecolor='none')
-                ax.add_patch(rect)
-                plt.savefig('./output/cache/'+name)
-            plt.close()
+        
+        if plot_bb == True:
+            ax.imshow(img_channel,cmap='grey')
+            # Create a Rectangle patch
+            rect = patches.Rectangle((x1, y1),
+                                    x2-x1,
+                                    y2-y1,
+                                    linewidth=2,
+                                    edgecolor='red',
+                                    facecolor='none')
+            ax.add_patch(rect)
+            plt.savefig('./output/cache/'+name)
+        plt.close()
 
 
         return all_cropped

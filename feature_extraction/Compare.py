@@ -18,6 +18,8 @@ from scipy.stats import mannwhitneyu
 from visualization import Histograms
 from visualization import Visuals
 
+from models import SVM
+
 class Compare():
     def __init__(self, config, dataloader, log):
         self.config = config
@@ -224,6 +226,13 @@ class Compare():
         Visuals(self.config,self.log).plot_feature_analysis(self.img_class_torch, _feat_arr, comparison_type,scale_data)
 
         return
+
+    def SVM(self):
+        ## currently set up for image feature comparison
+        svm=SVM(self.config,self.img_features_torch.cpu().detach().numpy(), self.img_class_torch.cpu().detach().numpy())
+        svm.run_SVM()
+        return
+
 
     def _report(self):
         #returns the healthy vs the control values
