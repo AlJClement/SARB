@@ -225,8 +225,6 @@ class Visuals():
         for j in range((2)):
             #looping twice to save pca and normalised pca feature outputs
             # channels should be in shape 0 of features 
-            fig, axes = plt.subplots(1, num_channels,figsize=(num_channels*4,1*4))
-            plt.tight_layout()
 
             for c in range(num_channels):
                 if feat_grid == False:
@@ -255,10 +253,7 @@ class Visuals():
                         pca = PCA(n_components=self.dimension_reduction_components)
                         pca.fit(flatten_feat_arr)
 
-                    print(pca.explained_variance_ratio_)
-                    print(pca.singular_values_)
-
-                    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))  # 1 row, 2 columns
+                    fig1, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4))  # 1 row, 2 columns
                     # First plot
                     ax1.plot(range(len(pca.explained_variance_ratio_)), pca.explained_variance_ratio_, color='blue')
                     ax1.set_title('explained variance ratio')
@@ -272,28 +267,35 @@ class Visuals():
                     ax2.set_ylabel('value')
 
                     ### printing to save
-                    self.log.info('PCA Explained Variance Ratios: '+ feats_fit.explained_variance_ratio_)
-                    self.log.info('PCA Singular Values: '+ feats_fit.singular_values_)
-
-                    plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_componentPLOTS'))
+                    self.log.info('PCA Explained Variance Ratios: '+ str(pca.explained_variance_ratio_))
+                    self.log.info('PCA Singular Values: '+ str(pca.singular_values_))
 
                     #this now takes the values and transforms on the two principal axis
                     feats_fit = pca.transform(flatten_feat_arr) 
                     #transform and get just the first two componenets
                     feats_fit=feats_fit[:, :2] 
-
+                    # plt.close()
 
                 elif comparison_type == 'tSNE':
-                    tsne = TSNE(n_components=self.dimension_reduction_components, perplexity=4, random_state=42)
+                    if self.dimension_reduction_components == 'ALL':
+                        tsne = TSNE(perplexity=4, random_state=42)
+                    else:
+                        tsne = TSNE(n_components=self.dimension_reduction_components, perplexity=4, random_state=42)
+                    #will always be two because its non parametric
                     feats_fit = tsne.fit_transform(flatten_feat_arr)
+                    
                 elif comparison_type == 'UMAP':
                     umap_model = umap.UMAP(n_components=self.dimension_reduction_components, n_neighbors=4, min_dist=0.7, random_state=42)
                     feats_fit = umap_model.fit_transform(flatten_feat_arr)
 
-                axes[c].set_xlabel("Component 1")
-                axes[c].set_ylabel("Component 2")
-                axes[c].grid()
-                axes[c].set_title('Channel '+str(c))
+                ##plot pca landmarks
+                # fig, axes = plt.subplots(1, num_channels,figsize=(num_channels*4,1*4))
+                plt.tight_layout()
+
+                ax3.set_xlabel("Component 1")
+                ax3.set_ylabel("Component 2")
+                ax3.grid()
+                ax3.set_title('Channel '+str(c))
 
                 class1 = feats_fit[classes == 0] 
                 class2 = feats_fit[classes == 1] 
@@ -304,16 +306,18 @@ class Visuals():
                     #standardise
                     scalex = 1.0/(feats_fit[:,0].max() - feats_fit[:,0].min())
                     scaley = 1.0/(feats_fit[:,1].max() - feats_fit[:,1].min())
-                    axes[c].set_xlim(-1,1)
-                    axes[c].set_ylim(-1,1)
+                    ax3.set_xlim(-1,1)
+                    ax3.set_ylim(-1,1)
                 
-                axes[c].set_aspect('equal')
+                ax3.set_aspect('equal')
                 
                 # Scatter plot
-                axes[c].scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
-                axes[c].scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='red', label=self.disease_str)
+                ax3.scatter(class1[:, 0]*scalex, class1[:, 1]*scaley, color='blue', label=self.control_str)
+                ax3.scatter(class2[:, 0]*scalex, class2[:, 1]*scaley, color='red', label=self.disease_str)
 
-                axes[c].legend([self.control_str, self.disease_str])
+                ax3.legend([self.control_str, self.disease_str])
+                plt.savefig(os.path.join(self.output_dir,self.output_sub_dir,comparison_type+'_componentPLOTS_channel'+str(c)))
+
                 # plt.show()
             plt.tight_layout()
 

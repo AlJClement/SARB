@@ -14,8 +14,8 @@ The goal of this project is to determine image features that can automatically d
 To reach this goal this repo was created. This repo is designed to load and calculate image features from the multiple scattering light images. The image features are then compared to determine statistical differences in groups.
 
 This project is split into the following: 
-1. Object Detection
-2. Feature Extraction
+1. Feature Extraction
+2. Object Detection
 
 ## Setup 
 <!-- If you are downloading on the computer currently set up int he lab:
@@ -45,6 +45,33 @@ conda activate torch-env
 
 Use conda list to ensure all packages have downloaded successfully.
 
+## DATA
+Data is in groups. For outline of data see Slide xx [here](). Current summary is there are 24 control samples and 19 disease (PAN) samples.
+<!-- NOTE:
+Array sizes are 2048 by 2448. For annotations I resampeld to 2048 by 2048 for simplicity. Yolo annotations are per x,y ratio so the image size wont matter. -->
+
+Annotations are done for:
+1. Clinical Regions of Intrest (Glomerulus, Promixal and Distal)
+2. Small regions of intrest (Inner, Outer and Glomerulus edge)
+
+See Slide xx [here]() for visuals. 
+
+These are only done for 5 samples of the control and 5 for disease.
+
+We are waiting for more clinical annotations.
+
+
+# Feature Extraction
+The configuration file outlines what type of features you will be comparing. 
+
+General information about the pipeline.
+1. Images are loaded into a dataloader, features are calculated and stored
+2. Comparisons are made and defined in the configuration files.
+
+## Features
+
+
+
 # Object Detection
 ### Overview 
 Ideally we would determine features over the entire image. After initial experiments, we found mimial difference in features over the entire image. After discussion with clinicians, they idenfitied localized regions of intreset (focusing on the Glomerulus or Renal Tubes). 
@@ -69,18 +96,6 @@ This documentation focuses on Components which is the connected
 ### YOLO - You Only Look Once
 In the configuration files you can set the model to train on yolo. To do so you must 
 
-
-
-
-# Feature Extraction
-The configuration file outlines what type of features you will be comparing. 
-
-General information about the pipeline.
-1. Images are loaded into a dataloader
-
-
-<!-- NOTE:
-Array sizes are 2048 by 2448. For annotations I resampeld to 2048 by 2048 for simplicity. Yolo annotations are per x,y ratio so the image size wont matter. -->
 
 
 
