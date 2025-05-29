@@ -46,6 +46,8 @@ class Compare():
         except:
             self.exponential_comparison = False
         
+
+
         self.img_details_arr, self.img_torch, self.img_class_torch, self.img_features_torch, self.img_features_labels_arr = dataloader.dataset.img_details, dataloader.dataset.img_arr, dataloader.dataset.img_class, dataloader.dataset.img_features, dataloader.dataset.img_feat_labels
 
         self.log = log
@@ -227,12 +229,18 @@ class Compare():
 
         return
 
-    def SVM(self):
+    def SVM_PCA(self):
         ## currently set up for image feature comparison
         svm=SVM(self.config,self.img_features_torch.cpu().detach().numpy(), self.img_class_torch.cpu().detach().numpy())
-        svm.run_SVM()
+        svm.run_SVM_PCA()
         return
 
+    def PCA_SVM(self):
+        ## currently set up for image feature comparison
+        svm=SVM(self.config,self.img_features_torch.cpu().detach().numpy(), self.img_class_torch.cpu().detach().numpy())
+        svm.run_PCA_SVM()
+        
+        return
 
     def _report(self):
         #returns the healthy vs the control values

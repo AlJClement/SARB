@@ -52,20 +52,37 @@ feature_extraction:
   # method: SkIMG
   # features:
   #   - GABOR
-  
   # gabor_frequency: 0.1
 
-  method: Pyfeats
-  features:
-    - ALL
+  # method: Pyfeats
+  # features:
+  #   - ALL
+
+  method: SimCLR
+  ### NOTE: in SimCLR.py you can change the encoder type and load different pretrained models. This is not coded in the configuration file yet.
+  ## current default is resnet50.
+  #model = models.resnet50(pretrained=True)
+  #example other model is vgg
+  #model = models.vgg19(pretrained=True)
+
+  backbone: resnet50
 
   ## define comparisons you want to make
   # comparison of features, depends on feature.
   #compare:  ['histogram_per_img','run_PCA', 'run_tSNE', 'run_UMAP']
 
-  # if compare is set to SVM this is learning and the data will be split into training/test data.
+  # if compare is set to SVM this is learning. The SVM will be learnt but first PCA is applied so that you an plot SVM outputs.
+  # Potentially you may want to run svm then get features and do PCA. This is currently not programed. SEE ./models/SVM.py
   # must be list format
-  compare: ['SVM']
+  # if you choose PCA_SVM it will first use pca to reduce components then compute svm
+  # if you use SVM_PCA it will first use pca then calculate svm.
+  #
+  compare: ['SVM_PCA']
+  svm_kernel: 'linear' #must define
+
+  ##'linear': if the data is linearly separable or if interpretability is important.
+  ##'rbf' or 'poly': if the data has nonlinear relationships.
+  ##'sigmoid': less common
 
 
   #define axis for histogram visuals

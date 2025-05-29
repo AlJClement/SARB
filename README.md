@@ -95,12 +95,6 @@ Comparisons per pixel can be done with histograms, comparing visuals/means.
 
 Both can be compared using dimensional reduction techniques (PCA/tSNE/UMAP).
 
-
-
-
-
-
-
 # Object Detection
 ### Overview 
 Ideally we would determine features over the entire image. After initial experiments, we found mimial difference in features over the entire image. After discussion with clinicians, they idenfitied localized regions of intreset (focusing on the Glomerulus or Renal Tubes). 
@@ -116,7 +110,6 @@ To run either method you need the run_object_detection.py.
 The configuration file under/config allows for specification of Yolo or Components.
 
 Currently there has been no success with YOLOv4 (limited date, need to re run with augmentations/more samples).
-
 
 ### Connected Components - Semi Automated Segmentation
 This work is not documented as we will not be using it in the future. It uses simpleITK connected componenets to threshold the image and then find groups of pixels which connect. The groups are thresholded. Large groups of pixels are kept/used to classify. Manual annotations were then done to edit (also using new definitions for classes). See process [Here](https://docs.google.com/presentation/d/1zDyhMLfWB14gSDWgSTuY9wiLSv9fFVKY/edit?slide=id.p1#slide=id.p1) Slides 2-7. Under helper files, visualisations can be created for bounding boxes as well when manual edits were required.
