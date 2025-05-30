@@ -5,7 +5,7 @@ data:
   mat_dir: '/Users/allison/Desktop/data' #directory of mat files.
 
   #Annotations are in yolo format and put all in one flat directory. They should have the same name as the mat_dir name with '_boundingbox.txt' at the end of the name.
-  annotation_dir: '/Users/allison/Desktop/data/clinican_annotations' 
+  #annotation_dir: '/Users/allison/Desktop/data/clinican_annotations' 
   #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape for data loader purposes
   max_annotations: 20
 
@@ -43,7 +43,7 @@ feature_extraction:
   #saves alot of time if you are not calculating features again
 
   #if you have annotations you can separate them by making the separate classes
-  separate_classes: True #false if you want entire image
+  separate_classes: False #false if you want entire image
   anatomy_class: 0
   feature_classnames: ['Glo', 'Proximal', 'Distal']
   #['Inner','Outer','Glo']

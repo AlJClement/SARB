@@ -5,6 +5,7 @@ data:
   mat_dir: '/Users/allison/Desktop/data' #directory of mat files.
 
   #Annotations are in yolo format and put all in one flat directory. They should have the same name as the mat_dir name with '_boundingbox.txt' at the end of the name.
+  ## comment annotation dir out if you want to have the entire image loaded
   annotation_dir: '/Users/allison/Desktop/data/clinican_annotations' 
   #max number of annotations, for dataloader, anything else will be all zeros but allows this to keep the same shape for data loader purposes
   max_annotations: 20
@@ -44,8 +45,8 @@ feature_extraction:
 
   #if you have annotations you can separate them by making the separate classes
   separate_classes: True #false if you want entire image
-  anatomy_class: 0
-  feature_classnames: ['Glo', 'Proximal', 'Distal'] #These are the classes in order for the CLINICIAN ROI
+  anatomy_class: 2 # INDEX of feature class names below
+  feature_classnames: ['Glo', 'Prox', 'Distal'] #These are the classes in order for the CLINICIAN ROI
   #['Inner','Outer','Glo'] These are the classes in order for the ROI
   
   #choose the method, see notes for details about the end of the document about potential feature extraction methods and how they differ in inputs required.
@@ -54,31 +55,32 @@ feature_extraction:
   #   - GABOR
   # gabor_frequency: 0.1
 
-  # method: Pyfeats
-  # features:
-  #   - ALL
+  method: Pyfeats
+  features:
+    - ALL
+  compare: ['plot_stat_difference','run_PCA', 'run_tSNE', 'run_UMAP']
 
-  method: SimCLR
+  # method: SimCLR
   ### NOTE: in SimCLR.py you can change the encoder type and load different pretrained models. This is not coded in the configuration file yet.
   ## current default is resnet50.
   #model = models.resnet50(pretrained=True)
   #example other model is vgg
   #model = models.vgg19(pretrained=True)
 
-  backbone: resnet50
+  # backbone: resnet50
 
   ## define comparisons you want to make
   # comparison of features, depends on feature.
-  #compare:  ['histogram_per_img','run_PCA', 'run_tSNE', 'run_UMAP']
+  # compare:  ['histogram_per_img','run_PCA', 'run_tSNE', 'run_UMAP'] #,'SVM_PCA','PCA_SVM']
 
   # if compare is set to SVM this is learning. The SVM will be learnt but first PCA is applied so that you an plot SVM outputs.
   # Potentially you may want to run svm then get features and do PCA. This is currently not programed. SEE ./models/SVM.py
   # must be list format
   # if you choose PCA_SVM it will first use pca to reduce components then compute svm
   # if you use SVM_PCA it will first use pca then calculate svm.
-  #
-  compare: ['SVM_PCA']
-  svm_kernel: 'linear' #must define
+  # #
+  # compare: ['SVM_PCA']
+  # svm_kernel: 'linear' #must define
 
   ##'linear': if the data is linearly separable or if interpretability is important.
   ##'rbf' or 'poly': if the data has nonlinear relationships.
